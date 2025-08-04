@@ -1,0 +1,262 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Services\PspPsService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+
+class PspPsController extends Controller
+{
+    protected $pspPsService;
+
+    public function __construct(PspPsService $pspPsService)
+    {
+        $this->pspPsService = $pspPsService;
+    }
+
+    public function index()
+    {
+        return view('psp-ps.index');
+    }
+
+    public function lista(Request $request)
+    {
+        try {
+            \Log::info('Iniciando lista com request:', $request->all());
+
+            $filtros = [
+                'mes' => $request->mes,
+                'ano' => $request->ano ?: date('Y'),
+                'ordem' => $request->ordem ?? 0,
+                'tipo' => $request->tipo,
+                'grupo' => $request->grupo ?: session('cdgrupo'),
+                'pst_numero' => $request->pst_numero
+            ];
+
+            \Log::info('Filtros montados:', $filtros);
+
+            try {
+                $dados = $this->pspPsService->listarPastas($filtros);
+
+                // Log detalhado do XML retornado
+                if ($dados instanceof \SimpleXMLElement) {
+                    \Log::info('XML retornado pela procedure:', [
+                        'xml' => $dados->asXML(),
+                        'xml_pretty' => (new \DOMDocument())->loadXML($dados->asXML())->saveXML()
+                    ]);
+                }
+
+                if (!is_array($dados)) {
+                    $dados = [];
+                }
+
+                // Log do primeiro item para debug
+                if (!empty($dados)) {
+                    \Log::info('Exemplo de registro retornado:', ['primeiro_item' => $dados[0]]);
+                }
+
+                // Formata os dados para o DataTable
+                $dados = collect($dados)->map(function($item) {
+                    try {
+                        \Log::debug('Item original:', ['item' => $item]);
+
+                        // Se for SimpleXMLElement, extrai os atributos
+                        if ($item instanceof \SimpleXMLElement) {
+                            $attrs = $item->attributes();
+                            $item = [];
+                            foreach ($attrs as $key => $value) {
+                                $item[$key] = (string)$value;
+                            }
+                        }
+                        // Se for outro tipo de objeto, converte para array
+                        elseif (is_object($item)) {
+                            $item = (array)$item;
+                        }
+
+                        \Log::debug('Item após conversão:', ['item' => $item]);
+
+                        // Garante que todos os campos existam com valores default
+                        return [
+                            'DT_RowId' => $item['pst_numero'] ?? '',
+                            'acoes' => $this->getBotoesAcao($item),
+                            'pst_numero' => $item['pst_numero'] ?? '',
+                            'nome_comercial' => $item['nome_comercial'] ?? '',
+                            'lote' => $item['Lote'] ?? '',
+                            'registro' => $item['registro'] ?? '',
+                            'pst_previsaocontrole' => $item['pst_previsaocontrole'] ?? '',
+                            'pst_previsaoproducao' => $item['pst_previsaoproducao'] ?? '',
+                            'status' => $item['status'] ?? '',
+                            'status_producao' => $item['status_producao'] ?? '',
+                            'pst_produto510' => $item['pst_produto510'] ?? '',
+                            'liberado' => $item['liberado'] ?? '',
+                            'pst_observacao' => $item['pst_observacao'] ?? ''
+                        ];
+                    } catch (\Exception $e) {
+                        \Log::error('Erro ao processar item:', [
+                            'item' => $item,
+                            'error' => $e->getMessage()
+                        ]);
+                        // Retorna um item vazio em caso de erro
+                        return [
+                            'DT_RowId' => '',
+                            'acoes' => '',
+                            'pst_numero' => '',
+                            'nome_comercial' => '',
+                            'lote' => '',
+                            'registro' => '',
+                            'pst_previsaocontrole' => '',
+                            'pst_previsaoproducao' => '',
+                            'status' => '',
+                            'status_producao' => '',
+                            'pst_produto510' => '',
+                            'liberado' => '',
+                            'pst_observacao' => ''
+                        ];
+                    }
+                });
+
+                return response()->json(['data' => $dados]);
+            } catch (\Exception $e) {
+                \Log::error('Erro ao processar dados:', [
+                    'message' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                return response()->json([
+                    'error' => 'Erro ao processar os dados da listagem.',
+                    'message' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor.'
+                ], 500);
+            }
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function status()
+    {
+        try {
+            $status = $this->pspPsService->getStatus();
+            \Log::info('Status retornado pelo controller:', ['data' => $status]);
+            return response()->json($status);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function show($numero)
+    {
+        $pasta = $this->pspPsService->getPasta($numero);
+        if (!$pasta) {
+            return redirect()->route('psp-ps.index')
+                ->with('error', 'Pasta não encontrada.');
+        }
+
+        return view('psp-ps.show', compact('pasta'));
+    }
+
+    public function edit($numero)
+    {
+        if (!Gate::allows('edit-psp-ps')) {
+            return redirect()->route('psp-ps.show', $numero)
+                ->with('error', 'Sem permissão para alterar.');
+        }
+
+        $pasta = $this->pspPsService->getPasta($numero);
+        if (!$pasta) {
+            return redirect()->route('psp-ps.index')
+                ->with('error', 'Pasta não encontrada.');
+        }
+
+        return view('psp-ps.edit', compact('pasta'));
+    }
+
+    public function update(Request $request, $numero)
+    {
+        if (!Gate::allows('edit-psp-ps')) {
+            return redirect()->route('psp-ps.show', $numero)
+                ->with('error', 'Sem permissão para alterar.');
+        }
+
+        $this->validate($request, [
+            'pst_previsaocontrole' => 'required|date',
+            'pst_previsaoproducao' => 'required|date',
+            'pst_observacao' => 'nullable|string|max:1000'
+        ]);
+
+        try {
+            $this->pspPsService->updatePasta($numero, $request->all());
+            return redirect()->route('psp-ps.show', $numero)
+                ->with('success', 'Pasta atualizada com sucesso.');
+        } catch (\Exception $e) {
+            return back()->withInput()
+                ->with('error', 'Erro ao atualizar: ' . $e->getMessage());
+        }
+    }
+
+    public function editDoc($numero)
+    {
+        if (!Gate::allows('edit-psp-ps-doc')) {
+            return redirect()->route('psp-ps.show', $numero)
+                ->with('error', 'Sem permissão para alterar documentação.');
+        }
+
+        $pasta = $this->pspPsService->getPasta($numero);
+        if (!$pasta) {
+            return redirect()->route('psp-ps.index')
+                ->with('error', 'Pasta não encontrada.');
+        }
+
+        return view('psp-ps.edit-doc', compact('pasta'));
+    }
+
+    public function updateDoc(Request $request, $numero)
+    {
+        if (!Gate::allows('edit-psp-ps-doc')) {
+            return redirect()->route('psp-ps.show', $numero)
+                ->with('error', 'Sem permissão para alterar documentação.');
+        }
+
+        $this->validate($request, [
+            'data_entrega' => 'required|date',
+            'observacao' => 'nullable|string|max:1000'
+        ]);
+
+        try {
+            $this->pspPsService->updateDocumentacao($numero, $request->all());
+            return redirect()->route('psp-ps.show', $numero)
+                ->with('success', 'Documentação atualizada com sucesso.');
+        } catch (\Exception $e) {
+            return back()->withInput()
+                ->with('error', 'Erro ao atualizar: ' . $e->getMessage());
+        }
+    }
+
+    private function getBotoesAcao($item)
+    {
+        $botoes = '';
+
+        // Botão de Alteração (apenas grupo 6)
+        if (Gate::allows('edit-psp-ps') && session('cdgrupo') == 6) {
+            $botoes .= '<a href="'.route('psp-ps.edit', $item['pst_numero']).'"
+                          class="btn btn-sm btn-primary" title="Alterar">
+                          <i class="fas fa-edit"></i>
+                       </a>';
+        }
+
+        // Botão de Documentação (grupos 2 a 6)
+        if (Gate::allows('edit-psp-ps-doc') && in_array(session('cdgrupo'), [2,3,4,5,6])) {
+            $botoes .= '<a href="'.route('psp-ps.edit-doc', $item['pst_numero']).'"
+                          class="btn btn-sm btn-info ml-1" title="Alterar Data de Entrega">
+                          <i class="fas fa-calendar-alt"></i>
+                       </a>';
+        }
+
+        // Botão de Detalhes (todos)
+        $botoes .= '<a href="'.route('psp-ps.show', $item['pst_numero']).'"
+                      class="btn btn-sm btn-secondary ml-1" title="Detalhes">
+                      <i class="fas fa-search"></i>
+                   </a>';
+
+        return $botoes;
+    }
+}

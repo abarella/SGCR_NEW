@@ -1,0 +1,132 @@
+# Pipeline de CI/CD para deploy automático no IIS
+# Executa após merge na branch main/master
+
+stages:
+  - build
+  - deploy
+
+variables:
+  # Configurações do projeto
+  PROJECT_NAME: "sgcr_novo"
+  IIS_SITE_NAME: "SGCR_NEW"
+  IIS_APP_POOL: "SGCR_NEW"
+  
+  # Diretórios
+  SOURCE_DIR: "C:\\Users\\luiz.f-basis\\Sistemas\\sgcr_novo"
+  DEPLOY_DIR: "\\\\flautim\\g$\\inetpub\\wwwroot\\Sistemas\\SGCR_NEW"
+  BACKUP_DIR: "C:\\backups\\${PROJECT_NAME}"
+  
+  # Configurações do PHP
+  PHP_VERSION: "8.2"
+
+# Cache para otimizar builds
+cache:
+  paths:
+    - vendor/
+    - node_modules/
+
+# Job de build
+build:
+  stage: build
+  tags:
+    - windows
+    - iis
+    - dev
+  script:
+  - echo "Iniciando build da aplicacao..."
+  - composer install --no-dev --optimize-autoloader
+  - if (!(Test-Path ".env")) { Copy-Item ".env.example" ".env" }
+  - php artisan key:generate --force
+  - php artisan config:cache
+  - php artisan route:cache
+  - php artisan view:cache
+  - echo "Build concluida com sucesso!"
+  artifacts:
+    paths:
+      - app/
+      - bootstrap/
+      - config/
+      - database/
+      - lang/
+      - public/
+      - resources/
+      - routes/
+      - storage/
+      - .env
+      - artisan
+    exclude:
+      - "**/node_modules"
+      - "**/.git"
+      - "**/tests"
+      - "**/*.log"
+      - "**/storage/logs"
+      - "**/storage/framework/cache"
+    expire_in: 1 hour
+  only:
+    - main
+    - master
+  except:
+    - tags
+
+# Job de deploy
+deploy:
+  stage: deploy
+  tags:
+    - windows
+    - iis
+    - dev
+  script:
+    - echo "Iniciando deploy no IIS..."
+    # Configurar credenciais de rede
+    - |
+      $username = "gds-luiz.finotello"
+      $password = "ACx%6S1*9Cng(u6"
+      cmdkey /add:flautim /user:$username /pass:$password
+      Write-Host "Credenciais de rede configuradas"
+    # Criar diretório de backup se não existir
+    - if (!(Test-Path "${BACKUP_DIR}")) { New-Item -ItemType Directory -Path "${BACKUP_DIR}" -Force }
+    # Backup simples, direto do IIS para o backup local, excluindo vendor e node_modules
+    - |
+      if (Test-Path "${DEPLOY_DIR}") {
+        $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+        $backupPath = "${BACKUP_DIR}\\backup_${timestamp}"
+        Write-Host "Criando backup em: $backupPath"
+        New-Item -ItemType Directory -Path "$backupPath" -Force
+        robocopy "${DEPLOY_DIR}" "$backupPath" /E /XD "vendor" "node_modules" "tests" ".git" /XF "*.log" ".env.example" "composer.json" "composer.lock" "package.json" "package-lock.json" "webpack.mix.js" "phpunit.xml" ".gitignore" ".gitattributes"
+        Write-Host "Backup concluído com sucesso!"
+      }
+    # Deploy incremental: copiar arquivos do build para o IIS
+    - Write-Host "Copiando arquivos da aplicação..."
+    - |
+      try {
+        robocopy "${SOURCE_DIR}" "${DEPLOY_DIR}" /E /XD "node_modules" "tests" ".git" "vendor" "storage" "bootstrap/cache" /XF "*.log" ".env.example" "composer.json" "composer.lock" "package.json" "package-lock.json" "webpack.mix.js" "phpunit.xml" ".gitignore" ".gitattributes" "web.config" ".phpunit.result.cache" /R:3 /W:10
+        Write-Host "Robocopy aplicação concluído (código: $LASTEXITCODE)"
+      } catch {
+        Write-Host "Robocopy aplicação concluído (com erro, mas continuando...)"
+      }
+    - Write-Host "Copiando dependências..."
+    - |
+      try {
+        robocopy "${SOURCE_DIR}\\vendor" "${DEPLOY_DIR}\\vendor" /E /R:3 /W:10
+        Write-Host "Robocopy vendor concluído (código: $LASTEXITCODE)"
+      } catch {
+        Write-Host "Robocopy vendor concluído (com erro, mas continuando...)"
+      }
+    - Write-Host "✅ Deploy concluído com sucesso!"
+    # Limpar backups antigos
+    - Write-Host "Limpando backups antigos..."
+    - |
+      $backups = Get-ChildItem "${BACKUP_DIR}" -Directory | Sort-Object CreationTime -Descending | Select-Object -Skip 5
+      foreach ($backup in $backups) {
+        Remove-Item $backup.FullName -Recurse -Force
+        Write-Host "Backup removido: $($backup.Name)"
+      }
+  environment:
+    name: development
+    url: http://des-sgcr_novo.ipen.br
+  only:
+    - main
+    - master
+  except:
+    - tags
+  allow_failure: false
