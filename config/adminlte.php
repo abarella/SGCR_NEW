@@ -296,13 +296,7 @@ return [
     */
 
     'menu' => [
-        [
-            'text' => 'PSP-PS',
-            'url'  => '/psp-ps',
-            'icon' => 'fas fa-folder',
-            'can'  => 'view-psp-ps'
-        ],
-        // Navbar items:
+
         [
             'type' => 'fullscreen-widget',
             'topnav_right' => true,

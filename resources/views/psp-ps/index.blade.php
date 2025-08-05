@@ -3,7 +3,7 @@
 @section('title', 'PSP-PS')
 
 @section('content_header')
-    <h1>PSP-PS - Pasta de Serviço</h1>
+    <h5 class="m-0">PSP-PS - Pasta de Serviço</h5>
 @stop
 
 @section('content')
@@ -51,39 +51,87 @@
             </div>
             <div class="col-md-3">
                 <label>Nº Pasta</label>
-                <input type="text" id="pasta" class="form-control" maxlength="10">
+                <input type="number" id="pasta" class="form-control" maxlength="10">
             </div>
         </div>
 
-        
 
-        <div class="table-responsive">
-            <table id="grid-pastas" class="table table-bordered table-striped">
-                <thead>
-                    <tr>
-                        <th>Ações</th>
-                        <th>Pasta</th>
-                        <th>Produto</th>
-                        <th>Lote</th>
-                        <th>Registro</th>
-                        <th>Prev. Controle</th>
-                        <th>Prev. Produção</th>
-                        <th>Status</th>
-                        <th>Status Produção</th>
-                    </tr>
-                </thead>
-                <tbody id="table-body">
-                    <!-- Dados serão inseridos aqui via JavaScript -->
-                </tbody>
-            </table>
-        </div>
+
+        @php
+            $heads = [
+                ['label' => 'Ações', 'width' => 10],
+                ['label' => 'Pasta'],
+                ['label' => 'Produto'],
+                ['label' => 'Lote'],
+                ['label' => 'Autorizado em'],
+                ['label' => 'Prev. Controle'],
+                ['label' => 'Prev. Produção'],
+                ['label' => 'Produção Revisado Por'],
+                ['label' => 'Controle Revisado Por'],
+                ['label' => 'Status'],
+                ['label' => 'Status Produção'],
+                ['label' => 'Obs Produção'],
+                ['label' => 'Obs Controle'],
+                ['label' => 'Observação'],
+            ];
+
+            $config = [
+                'processing' => true,
+                'serverSide' => false,
+                'responsive' => true,
+                'stateSave' => true,
+                'lengthMenu' => [[5, 10, 25, 50, -1], ['5 registros','10 registros', '25 registros', '50 registros', 'Todos']],
+                'columns' => [
+                    ['data' => 'acoes', 'orderable' => false, 'className' => 'text-nowrap'],
+                    ['data' => 'pst_numero', 'className' => 'text-nowrap'],
+                    ['data' => 'nome_comercial', 'className' => 'text-nowrap'],
+                    ['data' => 'lote', 'className' => 'text-nowrap'],
+                    ['data' => 'registro', 'className' => 'text-nowrap'],
+                    ['data' => 'pst_previsaocontrole', 'className' => 'text-nowrap'],
+                    ['data' => 'pst_previsaoproducao', 'className' => 'text-nowrap'],
+                    ['data' => 'producao_revisadopor', 'className' => 'text-nowrap'],
+                    ['data' => 'controle_revisadopor', 'className' => 'text-nowrap'],
+                    ['data' => 'status', 'className' => 'text-nowrap'],
+                    ['data' => 'status_producao', 'className' => 'text-nowrap'],
+                    ['data' => 'obs_producao', 'className' => 'text-nowrap'],
+                    ['data' => 'obs_controle', 'className' => 'text-nowrap'],
+                    ['data' => 'pst_observacao', 'className' => 'text-nowrap'],
+                ],
+                'order' => [[1, 'desc']],
+                'language' => ['url' => 'https://cdn.datatables.net/plug-ins/2.0.7/i18n/pt-BR.json'],
+                'dom' => '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>><"row"<"col-sm-12"tr>><"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+                'buttons' => ['excel', 'pdf', 'print'],
+            ];
+        @endphp
+
+        <x-adminlte-datatable id="grid-pastas" :heads="$heads" xhead-theme="light" :config="$config"
+            display striped hoverable bordered compact compressed with-buttons>
+            <tbody id="table-body">
+                <!-- Dados serão inseridos aqui via JavaScript -->
+            </tbody>
+        </x-adminlte-datatable>
     </div>
 </div>
+@stop
+
+@section('plugins.Datatables', true)
+@section('plugins.DatatablesPlugin', true)
+
+@section('css')
+<style>
+    .dataTables_wrapper .table td {
+        white-space: nowrap;
+        padding: 5px 8px;
+    }
+</style>
 @stop
 
 @section('js')
 <script>
 $(function() {
+    // Pega a instância já inicializada do DataTable
+    let dataTable = $('#grid-pastas').DataTable();
+
     // Carrega status
     $.get("{{ route('psp-ps.status') }}", function(data) {
         console.log('Dados recebidos:', data);
@@ -116,33 +164,18 @@ $(function() {
             data: params,
             beforeSend: function() {
                 console.log('Iniciando requisição para:', "{{ route('psp-ps.lista') }}");
-                $('#table-body').html('<tr><td colspan="9" class="text-center">Carregando...</td></tr>');
+                dataTable.clear().draw();
             },
             success: function(response) {
                 console.log('Resposta recebida:', response);
-                $('#table-body').empty();
 
                 if (response.data && response.data.length > 0) {
                     console.log('Dados encontrados:', response.data.length, 'registros');
-                    response.data.forEach(function(item, index) {
-                        console.log('Item', index, ':', item);
-                        $('#table-body').append(`
-                            <tr>
-                                <td>${item.acoes || ''}</td>
-                                <td>${item.pst_numero || ''}</td>
-                                <td>${item.nome_comercial || ''}</td>
-                                <td>${item.lote || ''}</td>
-                                <td>${item.registro || ''}</td>
-                                <td>${item.pst_previsaocontrole || ''}</td>
-                                <td>${item.pst_previsaoproducao || ''}</td>
-                                <td>${item.status || ''}</td>
-                                <td>${item.status_producao || ''}</td>
-                            </tr>
-                        `);
-                    });
+                    dataTable.clear().rows.add(response.data).draw();
                 } else {
                     console.log('Nenhum dado encontrado na resposta');
-                    $('#table-body').html('<tr><td colspan="9" class="text-center">Nenhum registro encontrado</td></tr>');
+                    dataTable.clear().draw();
+                    //$('#table-body').html('<tr><td colspan="12" class="text-center">Nenhum registro encontrado</td></tr>');
                 }
             },
             error: function(xhr, error, thrown) {
@@ -161,7 +194,7 @@ $(function() {
                 } else {
                     errorMessage += error;
                 }
-                $('#table-body').html(`<tr><td colspan="9" class="text-center text-danger">${errorMessage}</td></tr>`);
+                $('#table-body').html(`<tr><td colspan="12" class="text-center text-danger">${errorMessage}</td></tr>`);
             }
         });
     }

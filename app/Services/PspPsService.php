@@ -28,17 +28,15 @@ class PspPsService
 
             $sth = $dbh->prepare($sql);
 
-            // Preparando parâmetros e convertendo para tipos apropriados
-            $params = [
-                ':mes' => !empty($filtros['mes']) ? intval($filtros['mes']) : null,
-                ':ano' => !empty($filtros['ano']) ? intval($filtros['ano']) : intval(date('Y')),
-                ':ordem' => !empty($filtros['ordem']) ? intval($filtros['ordem']) : 0,
-                ':tipo' => !empty($filtros['tipo']) ? intval($filtros['tipo']) : null,
-                ':grupo' => !empty($filtros['grupo']) ? $filtros['grupo'] : null,
-                ':pst_numero' => !empty($filtros['pst_numero']) ? $filtros['pst_numero'] : null
-            ];
-
-
+                // Preparando parâmetros e convertendo para tipos apropriados
+                $params = [
+                    ':mes' => isset($filtros['mes']) && $filtros['mes'] !== '' ? intval($filtros['mes']) : null,
+                    ':ano' => isset($filtros['ano']) && $filtros['ano'] !== '' ? intval($filtros['ano']) : intval(date('Y')),
+                    ':ordem' => isset($filtros['ordem']) ? intval($filtros['ordem']) : 0,
+                    ':tipo' => isset($filtros['tipo']) && $filtros['tipo'] !== '' ? intval($filtros['tipo']) : null,
+                    ':grupo' => isset($filtros['grupo']) && $filtros['grupo'] !== '' ? $filtros['grupo'] : null,
+                    ':pst_numero' => isset($filtros['pst_numero']) && $filtros['pst_numero'] !== '' ? $filtros['pst_numero'] : null
+                ];
             // Log dos parâmetros após o tratamento
             \Log::info('Parâmetros após tratamento:', $params);
 
@@ -145,9 +143,10 @@ class PspPsService
      */
     public function getPasta($numero)
     {
+
         try {
             $dbh = DB::connection()->getPdo();
-            $sql = "SET NOCOUNT ON; EXEC sgcr.crsa.PPST_DETALHE @pst_numero = :numero";
+            $sql = "SET NOCOUNT ON; EXEC sgcr.crsa.PPST_lista2 @pst_numero = :numero";
             $sth = $dbh->prepare($sql);
             $sth->bindValue(':numero', $numero);
             $sth->execute();
@@ -157,6 +156,8 @@ class PspPsService
             \Log::error('Erro ao buscar pasta: ' . $e->getMessage());
             return null;
         }
+
+        //return $numero;
     }
 
     /**

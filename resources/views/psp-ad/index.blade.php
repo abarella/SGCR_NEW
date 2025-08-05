@@ -14,9 +14,9 @@
 </script>
 @endpush
 @extends('adminlte::page')
-@section('title', 'PSP-AD - Pedidos')
+@section('title', 'Pastas - Altera Datas')
 @section('content_header')
-    <h5 class="m-0">PSP-AD - Pedidos</h5>
+    <h5 class="m-0">Pastas - Altera Datas</h5>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         var checkAll = document.getElementById('checkAll');

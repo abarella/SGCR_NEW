@@ -1,6 +1,8 @@
 <?php
 namespace App\Services;
+use PDO;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Uma especie de classe facade com todas as procedures necessária para o sistema
@@ -11,7 +13,7 @@ class GlobalService
 {
 
     public static function validaAcesso(string $usuario, string $senha)
-    {        
+    {
         $result = "";
         $dbh = DB::connection()->getPdo();
 
@@ -31,7 +33,7 @@ class GlobalService
     }
 
     public static function dadosUsuario(string $cdusuario)
-    {        
+    {
         $result = "";
         $dbh = DB::connection()->getPdo();
 
@@ -79,4 +81,209 @@ class GlobalService
         }
         return [];
     }
+
+    /**
+    * Carrega técnicos operadores
+    */
+    public function carregarTecnicos()
+    {
+        try {
+            $dbh = DB::connection()->getPdo();
+            $sql = "EXEC sgcr.crsa.P1110_USUARIOS_MMRD";
+            $sth = $dbh->prepare($sql);
+            $sth->execute();
+            Log::debug('Procedure executada com sucesso: crsa.P1110_USUARIOS_MMRD');
+
+            $xmlResult = "";
+            while ($row = $sth->fetch(\PDO::FETCH_NUM)) {
+                $xmlResult .= $row[0];
+            }
+
+            if (empty($xmlResult)) {
+                Log::warning('Procedure retornou vazio para técnicos.');
+                return [];
+            }
+
+            $xmlResult = trim($xmlResult);
+
+            if (!str_starts_with($xmlResult, "<root>")) {
+                $xmlResult = "<root>$xmlResult</root>";
+            }
+
+            $xml = simplexml_load_string($xmlResult);
+            if (!$xml) {
+                Log::error('Erro ao converter XML para técnicos');
+                return [];
+            }
+
+            $tecnicos = [];
+            foreach ($xml->row as $row) {
+                $tecnicos[] = (object) [
+                    'cdusuario' => trim((string) $row['p1110_usuarioid']),
+                    'nome' => trim((string) $row['p1110_nome'])
+                ];
+            }
+
+            Log::debug('Técnicos carregados com sucesso:', ['total' => count($tecnicos)]);
+            return $tecnicos;
+        } catch (\Exception $e) {
+            Log::error('Erro ao carregar técnicos: ' . $e->getMessage());
+            return []; // Sempre retorna array
+        }
+    }
+
+
+    /**
+    * Carrega Revisadores
+    */
+    public function CarregarRevisado()
+    {
+        try {
+            $dbh = DB::connection()->getPdo();
+            $sql = "set nocount on; EXEC sgcr.crsa.P1110_USUARIOS @p052_grupocd=6, @p1110_ativo='A', @ordem=1";
+            $sth = $dbh->prepare($sql);
+            $sth->execute();
+            Log::debug('Procedure executada com sucesso: crsa.P1110_USUARIOS');
+
+            $xmlResult = "";
+            while ($row = $sth->fetch(\PDO::FETCH_NUM)) {
+                $xmlResult .= $row[0];
+            }
+
+            if (empty($xmlResult)) {
+                Log::warning('Procedure retornou vazio para técnicos.');
+                return [];
+            }
+
+            $xmlResult = trim($xmlResult);
+
+            if (!str_starts_with($xmlResult, "<root>")) {
+                $xmlResult = "<root>$xmlResult</root>";
+            }
+
+            $xml = simplexml_load_string($xmlResult);
+            if (!$xml) {
+                Log::error('Erro ao converter XML para técnicos');
+                return [];
+            }
+
+            $tecnicos = [];
+            foreach ($xml->row as $row) {
+                $tecnicos[] = (object) [
+                    'cdusuario' => trim((string) $row['p1110_usuarioid']),
+                    'nome' => trim((string) $row['p1110_nome'])
+                ];
+            }
+
+            Log::debug('Técnicos carregados com sucesso:', ['total' => count($tecnicos)]);
+            return $tecnicos;
+        } catch (\Exception $e) {
+            Log::error('Erro ao carregar técnicos: ' . $e->getMessage());
+            return []; // Sempre retorna array
+        }
+    }
+
+
+    /**
+    * Carrega Status da Produção
+    */
+    public function carregarProducaStatus()
+    {
+        try {
+            $dbh = DB::connection()->getPdo();
+            $sql = "EXEC sgcr.crsa.PPST_PRODUCAOSTATUS";
+            $sth = $dbh->prepare($sql);
+            $sth->execute();
+            Log::debug('Procedure executada com sucesso: crsa.PPST_PRODUCAOSTATUS');
+
+            $xmlResult = "";
+            while ($row = $sth->fetch(\PDO::FETCH_NUM)) {
+                $xmlResult .= $row[0];
+            }
+
+            if (empty($xmlResult)) {
+                Log::warning('Procedure retornou vazio para PPST_PRODUCAOSTATUS.');
+                return [];
+            }
+
+            $xmlResult = trim($xmlResult);
+
+            if (!str_starts_with($xmlResult, "<root>")) {
+                $xmlResult = "<root>$xmlResult</root>";
+            }
+
+            $xml = simplexml_load_string($xmlResult);
+            if (!$xml) {
+                Log::error('Erro ao converter XML para prodstatus');
+                return [];
+            }
+
+            $prodstatus = [];
+            foreach ($xml->row as $row) {
+                $prodstatus[] = (object) [
+                    'pstprod_status' => trim((string) $row['pstprod_status']),
+                    'pstprod_descricao' => trim((string) $row['pstprod_descricao'])
+                ];
+            }
+
+            Log::debug('prodstatus carregados com sucesso:', ['total' => count($prodstatus)]);
+            return $prodstatus;
+        } catch (\Exception $e) {
+            Log::error('Erro ao carregar prodstatus: ' . $e->getMessage());
+            return []; // Sempre retorna array
+        }
+    }
+
+
+    /**
+    * Carrega Status
+    */
+    public function carregarStatus()
+    {
+        try {
+            $dbh = DB::connection()->getPdo();
+            $sql = "EXEC sgcr.crsa.PPST_STATUS  @codigo = null ";
+            $sth = $dbh->prepare($sql);
+            $sth->execute();
+            Log::debug('Procedure executada com sucesso: crsa.PPST_STATUS');
+
+            $xmlResult = "";
+            while ($row = $sth->fetch(\PDO::FETCH_NUM)) {
+                $xmlResult .= $row[0];
+            }
+
+            if (empty($xmlResult)) {
+                Log::warning('Procedure retornou vazio para PPST_STATUS.');
+                return [];
+            }
+
+            $xmlResult = trim($xmlResult);
+
+            if (!str_starts_with($xmlResult, "<root>")) {
+                $xmlResult = "<root>$xmlResult</root>";
+            }
+
+            $xml = simplexml_load_string($xmlResult);
+            if (!$xml) {
+                Log::error('Erro ao converter XML para prodstatus');
+                return [];
+            }
+
+            $status = [];
+            foreach ($xml->row as $row) {
+                $status[] = (object) [
+                    'status_codigo' => trim((string) $row['pststs_codigo']),
+                    'status_descricao' => trim((string) $row['pststs_descricao'])
+                ];
+            }
+
+            Log::debug('status carregados com sucesso:', ['total' => count($status)]);
+            return $status;
+        } catch (\Exception $e) {
+            Log::error('Erro ao carregar prodstatus: ' . $e->getMessage());
+            return []; // Sempre retorna array
+        }
+    }
+
+
 }

@@ -3,7 +3,9 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\PspAdController;
+use App\Http\Controllers\DefinicaoSerie\DefinicaoSerieController;
 use App\Http\Controllers\PspPsController;
+
 
 
 Route::get('/', function () {
@@ -37,6 +39,22 @@ Route::middleware(['auth'])->group(function () {
 Route::prefix('psp-ad')->name('psp-ad.')->group(function() {
     Route::get('/', [PspAdController::class, 'index'])->name('index');
     Route::post('/atualizar', [PspAdController::class, 'atualizar'])->name('atualizar');
+});
+
+
+// Rotas para Definição de Série
+Route::prefix('dfv-ds')->name('dfv-ds.')->group(function() {
+    Route::get('/', [DefinicaoSerieController::class, 'index'])->name('index');
+    Route::post('/carregar-lotes', [DefinicaoSerieController::class, 'carregarLotes'])->name('carregar-lotes');
+    Route::post('/pesquisar-lista-serie', [DefinicaoSerieController::class, 'pesquisarListaSerie'])->name('pesquisar-lista-serie');
+    Route::post('/definir-serie', [DefinicaoSerieController::class, 'definirSerie'])->name('definir-serie');
+    Route::post('/definir-multiplas-series', [DefinicaoSerieController::class, 'definirMultiplasSeries'])->name('definir-multiplas-series');
+    Route::get('/intervalo', [DefinicaoSerieController::class, 'intervalo'])->name('intervalo');
+    Route::post('/definir-serie-intervalo', [DefinicaoSerieController::class, 'definirSerieIntervalo'])->name('definir-serie-intervalo');
+    Route::get('/intervalo-lote', [DefinicaoSerieController::class, 'intervaloLote'])->name('intervalo-lote');
+    Route::post('/definir-serie-intervalo-lote', [DefinicaoSerieController::class, 'definirSerieIntervaloLote'])->name('definir-serie-intervalo-lote');
+    Route::get('/definicao-serie/buscar-numero', [DefinicaoSerieController::class, 'buscarNumero']);
+    Route::post('/buscar-serie', [DefinicaoSerieController::class, 'buscarSerie'])->name('buscar-serie');
 });
 
 
