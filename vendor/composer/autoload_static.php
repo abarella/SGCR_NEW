@@ -119,6 +119,7 @@ class ComposerStaticInitda9b7a1dc1dd923105198c572cc7df8d
         'N' => 
         array (
             'NunoMaduro\\Collision\\' => 21,
+            'Nette\\' => 6,
         ),
         'M' => 
         array (
@@ -416,6 +417,10 @@ class ComposerStaticInitda9b7a1dc1dd923105198c572cc7df8d
         array (
             0 => __DIR__ . '/..' . '/nunomaduro/collision/src',
         ),
+        'Nette\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/nette/utils/src',
+        ),
         'Monolog\\' => 
         array (
             0 => __DIR__ . '/..' . '/monolog/monolog/src/Monolog',
@@ -589,11 +594,9 @@ class ComposerStaticInitda9b7a1dc1dd923105198c572cc7df8d
     );
 
     public static $classMap = array (
-        'App\\Console\\Commands\\CheckUsers' => __DIR__ . '/../..' . '/app/Console/Commands/CheckUsers.php',
         'App\\Http\\Controllers\\AplicacaoController' => __DIR__ . '/../..' . '/app/Http/Controllers/AplicacaoController.php',
         'App\\Http\\Controllers\\AssinaturaController' => __DIR__ . '/../..' . '/app/Http/Controllers/AssinaturaController.php',
         'App\\Http\\Controllers\\AssuntoController' => __DIR__ . '/../..' . '/app/Http/Controllers/AssuntoController.php',
-        'App\\Http\\Controllers\\Auth\\ChangePasswordController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/ChangePasswordController.php',
         'App\\Http\\Controllers\\Auth\\ConfirmPasswordController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/ConfirmPasswordController.php',
         'App\\Http\\Controllers\\Auth\\ForgotPasswordController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/ForgotPasswordController.php',
         'App\\Http\\Controllers\\Auth\\LoginController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/LoginController.php',
@@ -605,15 +608,11 @@ class ComposerStaticInitda9b7a1dc1dd923105198c572cc7df8d
         'App\\Http\\Controllers\\Controller' => __DIR__ . '/../..' . '/app/Http/Controllers/Controller.php',
         'App\\Http\\Controllers\\DefinicaoSerie\\DefinicaoSerieController' => __DIR__ . '/../..' . '/app/Http/Controllers/DefinicaoSerie/DefinicaoSerieController.php',
         'App\\Http\\Controllers\\EmissorController' => __DIR__ . '/../..' . '/app/Http/Controllers/EmissorController.php',
-        'App\\Http\\Controllers\\FpeController' => __DIR__ . '/../..' . '/app/Http/Controllers/FpeController.php',
         'App\\Http\\Controllers\\GrupoController' => __DIR__ . '/../..' . '/app/Http/Controllers/GrupoController.php',
         'App\\Http\\Controllers\\HomeController' => __DIR__ . '/../..' . '/app/Http/Controllers/HomeController.php',
         'App\\Http\\Controllers\\ImageController' => __DIR__ . '/../..' . '/app/Http/Controllers/ImageController.php',
-        'App\\Http\\Controllers\\PrlAeController' => __DIR__ . '/../..' . '/app/Http/Controllers/PrlAeController.php',
-        'App\\Http\\Controllers\\PrlFpController' => __DIR__ . '/../..' . '/app/Http/Controllers/PrlFpController.php',
         'App\\Http\\Controllers\\PspAdController' => __DIR__ . '/../..' . '/app/Http/Controllers/PspAdController.php',
         'App\\Http\\Controllers\\PspPsController' => __DIR__ . '/../..' . '/app/Http/Controllers/PspPsController.php',
-        'App\\Http\\Controllers\\TrfTmController' => __DIR__ . '/../..' . '/app/Http/Controllers/TrfTmController.php',
         'App\\Http\\Controllers\\TwoFactorController' => __DIR__ . '/../..' . '/app/Http/Controllers/TwoFactorController.php',
         'App\\Http\\Controllers\\UserController\\adminUserController' => __DIR__ . '/../..' . '/app/Http/Controllers/UserController/adminUserController.php',
         'App\\Http\\Controllers\\Usuario_AplicacaoController' => __DIR__ . '/../..' . '/app/Http/Controllers/Usuario_AplicacaoController.php',
@@ -623,11 +622,7 @@ class ComposerStaticInitda9b7a1dc1dd923105198c572cc7df8d
         'App\\Ldap\\User' => __DIR__ . '/../..' . '/app/Ldap/User.php',
         'App\\Models\\AbstractModel' => __DIR__ . '/../..' . '/app/Models/AbstractModel.php',
         'App\\Models\\DefinicaoSerie' => __DIR__ . '/../..' . '/app/Models/DefinicaoSerie.php',
-        'App\\Models\\Fpe' => __DIR__ . '/../..' . '/app/Models/Fpe.php',
-        'App\\Models\\PrlAe' => __DIR__ . '/../..' . '/app/Models/PrlAe.php',
-        'App\\Models\\PrlFp' => __DIR__ . '/../..' . '/app/Models/PrlFp.php',
         'App\\Models\\PspAdPedido' => __DIR__ . '/../..' . '/app/Models/PspAdPedido.php',
-        'App\\Models\\TrfTm' => __DIR__ . '/../..' . '/app/Models/TrfTm.php',
         'App\\Models\\User' => __DIR__ . '/../..' . '/app/Models/User.php',
         'App\\Models\\aplicacao' => __DIR__ . '/../..' . '/app/Models/aplicacao.php',
         'App\\Models\\assinatura' => __DIR__ . '/../..' . '/app/Models/assinatura.php',
@@ -638,7 +633,6 @@ class ComposerStaticInitda9b7a1dc1dd923105198c572cc7df8d
         'App\\Models\\usuario_aplicacao' => __DIR__ . '/../..' . '/app/Models/usuario_aplicacao.php',
         'App\\Providers\\AppServiceProvider' => __DIR__ . '/../..' . '/app/Providers/AppServiceProvider.php',
         'App\\Providers\\AuthServiceProvider' => __DIR__ . '/../..' . '/app/Providers/AuthServiceProvider.php',
-        'App\\Providers\\RouteServiceProvider' => __DIR__ . '/../..' . '/app/Providers/RouteServiceProvider.php',
         'App\\Providers\\TelescopeServiceProvider' => __DIR__ . '/../..' . '/app/Providers/TelescopeServiceProvider.php',
         'App\\Services\\DefinicaoSerieService' => __DIR__ . '/../..' . '/app/Services/DefinicaoSerieService.php',
         'App\\Services\\GlobalService' => __DIR__ . '/../..' . '/app/Services/GlobalService.php',
@@ -2995,18 +2989,13 @@ class ComposerStaticInitda9b7a1dc1dd923105198c572cc7df8d
         'JeroenNoten\\LaravelAdminLte\\AdminLteServiceProvider' => __DIR__ . '/..' . '/jeroennoten/laravel-adminlte/src/AdminLteServiceProvider.php',
         'JeroenNoten\\LaravelAdminLte\\Console\\AdminLteInstallCommand' => __DIR__ . '/..' . '/jeroennoten/laravel-adminlte/src/Console/AdminLteInstallCommand.php',
         'JeroenNoten\\LaravelAdminLte\\Console\\AdminLtePluginCommand' => __DIR__ . '/..' . '/jeroennoten/laravel-adminlte/src/Console/AdminLtePluginCommand.php',
-        'JeroenNoten\\LaravelAdminLte\\Console\\AdminLteRemoveCommand' => __DIR__ . '/..' . '/jeroennoten/laravel-adminlte/src/Console/AdminLteRemoveCommand.php',
         'JeroenNoten\\LaravelAdminLte\\Console\\AdminLteStatusCommand' => __DIR__ . '/..' . '/jeroennoten/laravel-adminlte/src/Console/AdminLteStatusCommand.php',
         'JeroenNoten\\LaravelAdminLte\\Console\\AdminLteUpdateCommand' => __DIR__ . '/..' . '/jeroennoten/laravel-adminlte/src/Console/AdminLteUpdateCommand.php',
-        'JeroenNoten\\LaravelAdminLte\\Console\\PackageResources\\AdminlteAssetsResource' => __DIR__ . '/..' . '/jeroennoten/laravel-adminlte/src/Console/PackageResources/AdminlteAssetsResource.php',
         'JeroenNoten\\LaravelAdminLte\\Console\\PackageResources\\AssetsResource' => __DIR__ . '/..' . '/jeroennoten/laravel-adminlte/src/Console/PackageResources/AssetsResource.php',
-        'JeroenNoten\\LaravelAdminLte\\Console\\PackageResources\\AuthRoutesResource' => __DIR__ . '/..' . '/jeroennoten/laravel-adminlte/src/Console/PackageResources/AuthRoutesResource.php',
         'JeroenNoten\\LaravelAdminLte\\Console\\PackageResources\\AuthViewsResource' => __DIR__ . '/..' . '/jeroennoten/laravel-adminlte/src/Console/PackageResources/AuthViewsResource.php',
         'JeroenNoten\\LaravelAdminLte\\Console\\PackageResources\\BasicRoutesResource' => __DIR__ . '/..' . '/jeroennoten/laravel-adminlte/src/Console/PackageResources/BasicRoutesResource.php',
         'JeroenNoten\\LaravelAdminLte\\Console\\PackageResources\\BasicViewsResource' => __DIR__ . '/..' . '/jeroennoten/laravel-adminlte/src/Console/PackageResources/BasicViewsResource.php',
-        'JeroenNoten\\LaravelAdminLte\\Console\\PackageResources\\BladeComponentsResource' => __DIR__ . '/..' . '/jeroennoten/laravel-adminlte/src/Console/PackageResources/BladeComponentsResource.php',
         'JeroenNoten\\LaravelAdminLte\\Console\\PackageResources\\ConfigResource' => __DIR__ . '/..' . '/jeroennoten/laravel-adminlte/src/Console/PackageResources/ConfigResource.php',
-        'JeroenNoten\\LaravelAdminLte\\Console\\PackageResources\\LayoutViewsResource' => __DIR__ . '/..' . '/jeroennoten/laravel-adminlte/src/Console/PackageResources/LayoutViewsResource.php',
         'JeroenNoten\\LaravelAdminLte\\Console\\PackageResources\\MainViewsResource' => __DIR__ . '/..' . '/jeroennoten/laravel-adminlte/src/Console/PackageResources/MainViewsResource.php',
         'JeroenNoten\\LaravelAdminLte\\Console\\PackageResources\\PackageResource' => __DIR__ . '/..' . '/jeroennoten/laravel-adminlte/src/Console/PackageResources/PackageResource.php',
         'JeroenNoten\\LaravelAdminLte\\Console\\PackageResources\\PluginsResource' => __DIR__ . '/..' . '/jeroennoten/laravel-adminlte/src/Console/PackageResources/PluginsResource.php',

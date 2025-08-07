@@ -10,12 +10,12 @@ variables:
   PROJECT_NAME: "sgcr_novo"
   IIS_SITE_NAME: "SGCR_NEW"
   IIS_APP_POOL: "SGCR_NEW"
-  
+
   # Diretórios
-  SOURCE_DIR: "C:\\Users\\luiz.f-basis\\Sistemas\\sgcr_novo"
+  SOURCE_DIR: "C:\\Projetos\\sgcr_novo"
   DEPLOY_DIR: "\\\\flautim\\g$\\inetpub\\wwwroot\\Sistemas\\SGCR_NEW"
   BACKUP_DIR: "C:\\backups\\${PROJECT_NAME}"
-  
+
   # Configurações do PHP
   PHP_VERSION: "8.2"
 

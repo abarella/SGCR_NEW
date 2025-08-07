@@ -83,6 +83,57 @@ class GlobalService
     }
 
     /**
+     * Carrega lotes baseado no produto selecionado
+     */
+    public static function carregarLotes($produto)
+    {
+        try {
+            $dbh = DB::connection()->getPdo();
+            $sql = "EXEC vendasPelicano.dbo.P0100_Calendario_Produto @p100prod = ?, @tipo = 1";
+            $sth = $dbh->prepare($sql);
+            $sth->execute([trim($produto)]);
+
+            // Obtém o resultado da procedure, que deve ser XML
+            $xmlResult = "";
+            while ($row = $sth->fetch(\PDO::FETCH_NUM)) {
+                $xmlResult .= $row[0]; // Supondo que a coluna 0 contenha o XML
+            }
+
+            // Verifica se a procedure retornou algo
+            if (empty($xmlResult)) {
+                return [];
+            }
+
+            // Limpar espaços em branco e remover caracteres não esperados
+            $xmlResult = trim($xmlResult);
+
+            // Verifica se o XML retornado já contém uma tag raiz
+            if (!str_starts_with($xmlResult, "<root>")) {
+                $xmlResult = "<root>$xmlResult</root>";
+            }
+
+            // Tenta carregar o XML
+            $xml = simplexml_load_string($xmlResult);
+            if (!$xml) {
+                Log::error('Erro ao converter XML para lotes');
+                return [];
+            }
+
+            $lotes = [];
+            foreach ($xml->row as $row) {
+                $lotes[] = (object) [
+                    'lote' => trim((string) $row['p100lote'])
+                ];
+            }
+
+            return $lotes;
+        } catch (\Exception $e) {
+            Log::error('Erro ao carregar lotes: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
     * Carrega técnicos operadores
     */
     public function carregarTecnicos()

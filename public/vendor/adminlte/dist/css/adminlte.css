@@ -1,10 +1,10 @@
-/*!
+/*
  *   AdminLTE v3.2.0
  *   Author: Colorlib
  *   Website: AdminLTE.io <https://adminlte.io>
  *   License: Open source - MIT <https://opensource.org/licenses/MIT>
  */
-/*!
+/*
  * Bootstrap v4.6.1 (https://getbootstrap.com/)
  * Copyright 2011-2021 The Bootstrap Authors
  * Copyright 2011-2021 Twitter, Inc.
@@ -50,7 +50,7 @@
 html {
   font-family: sans-serif;
   line-height: 1.15;
-  -webkit-text-size-adjust: 100%;
+  /*-webkit-text-size-adjust: 100%;*/
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 
@@ -222,7 +222,7 @@ caption {
 
 th {
   text-align: inherit;
-  text-align: -webkit-match-parent;
+  /*text-align: -webkit-match-parent;*/
 }
 
 label {
@@ -267,11 +267,13 @@ select {
   word-wrap: normal;
 }
 
+
 button,
 [type="button"],
 [type="reset"],
 [type="submit"] {
   -webkit-appearance: button;
+  appearance: button;
 }
 
 button:not(:disabled),
@@ -330,7 +332,7 @@ progress {
 
 [type="search"] {
   outline-offset: -2px;
-  -webkit-appearance: none;
+  /*-webkit-appearance: none;*/
 }
 
 [type="search"]::-webkit-search-decoration {
@@ -1959,7 +1961,7 @@ pre code {
     display: block;
     width: 100%;
     overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    /*-webkit-overflow-scrolling: touch;*/
   }
   .table-responsive-sm > .table-bordered {
     border: 0;
@@ -1971,7 +1973,7 @@ pre code {
     display: block;
     width: 100%;
     overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    /*-webkit-overflow-scrolling: touch;*/
   }
   .table-responsive-md > .table-bordered {
     border: 0;
@@ -1983,7 +1985,7 @@ pre code {
     display: block;
     width: 100%;
     overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    /*-webkit-overflow-scrolling: touch;*/
   }
   .table-responsive-lg > .table-bordered {
     border: 0;
@@ -1995,7 +1997,7 @@ pre code {
     display: block;
     width: 100%;
     overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    /*-webkit-overflow-scrolling: touch;*/
   }
   .table-responsive-xl > .table-bordered {
     border: 0;
@@ -2006,7 +2008,7 @@ pre code {
   display: block;
   width: 100%;
   overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+  /*-webkit-overflow-scrolling: touch;*/
 }
 
 .table-responsive > .table-bordered {
@@ -3817,8 +3819,8 @@ input[type="button"].btn-block {
   display: block;
   min-height: 1.5rem;
   padding-left: 1.5rem;
-  -webkit-print-color-adjust: exact;
-  color-adjust: exact;
+  /*-webkit-print-color-adjust: exact;*/
+  /*color-adjust: exact;*/
 }
 
 .custom-control-inline {
@@ -5033,8 +5035,8 @@ input[type="button"].btn-block {
     -webkit-column-gap: 1.25rem;
     -moz-column-gap: 1.25rem;
     column-gap: 1.25rem;
-    orphans: 1;
-    widows: 1;
+    /*orphans: 1;*/
+    /*widows: 1;*/
   }
   .card-columns .card {
     display: inline-block;
@@ -10748,7 +10750,7 @@ body,
 .layout-navbar-fixed.sidebar-mini.sidebar-collapse .wrapper .brand-link,
 .layout-navbar-fixed.sidebar-mini-md.sidebar-collapse .wrapper .brand-link,
 .layout-navbar-fixed.sidebar-mini-xs.sidebar-collapse .wrapper .brand-link {
-  xheight: calc(3.5rem + 1px);
+  /*xheight: calc(3.5rem + 1px);*/
   width: 4.6rem;
 }
 
@@ -11867,13 +11869,13 @@ body:not(.layout-fixed) .main-sidebar .sidebar {
   width: 100%;
   position: fixed;
   text-align: left;
-  -moz-box-sizing: border-box;
+  /*-moz-box-sizing: border-box;*/
   background: none repeat scroll 0 0 #397BC9;
   border-top: 4px #feaa13 solid;
   color: #FFFFFF;
   font-size: 11px;
-  xpadding: 3px 0px;
-  xmargin:0 auto;
+  /*xpadding: 3px 0px;*/
+  /*xmargin:0 auto;*/
 
 }
 
@@ -45827,7 +45829,7 @@ blockquote.quote-gray-dark h6 {
 }
 
 .elevation-4 {
-  xbox-shadow: 0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22) !important;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22) !important;
 }
 
 .elevation-5 {
@@ -53113,13 +53115,13 @@ a.text-muted:hover {
     width: 100%;
     position: fixed;
     text-align: left;
-    -moz-box-sizing: border-box;
+    /*-moz-box-sizing: border-box;*/
     background: none repeat scroll 0 0 #397BC9;
     border-top: 4px #feaa13 solid;
     color: #FFFFFF;
     font-size: 11px;
-    xpadding: 3px 0px;
-    xmargin:0 auto;
+    /*xpadding: 3px 0px;*/
+    /*xmargin:0 auto;*/
     z-index: 2000;
   }
 

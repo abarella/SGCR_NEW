@@ -143,7 +143,6 @@ class PspPsService
      */
     public function getPasta($numero)
     {
-
         try {
             $dbh = DB::connection()->getPdo();
             $sql = "SET NOCOUNT ON; EXEC sgcr.crsa.PPST_lista2 @pst_numero = :numero";
@@ -151,13 +150,62 @@ class PspPsService
             $sth->bindValue(':numero', $numero);
             $sth->execute();
 
-            return $sth->fetch(\PDO::FETCH_OBJ);
+            // Concatena todos os fragmentos XML retornados
+            $xmlResult = "";
+            while ($row = $sth->fetch(\PDO::FETCH_NUM)) {
+                $xmlResult .= $row[0];
+            }
+
+            if (empty($xmlResult)) {
+                \Log::warning("Nenhum resultado encontrado para pasta: $numero");
+                return null;
+            }
+
+            $xmlResult = trim($xmlResult);
+
+            // Garante que o XML tenha um root
+            if (!str_starts_with($xmlResult, "<root>")) {
+                $xmlResult = "<root>$xmlResult</root>";
+            }
+
+            // Converte XML para objeto
+            $xml = simplexml_load_string($xmlResult);
+            if (!$xml) {
+                \Log::error("Erro ao converter XML para pasta: $numero");
+                return null;
+            }
+
+            // Pega a primeira row do XML e converte para objeto
+            if (isset($xml->row[0])) {
+                $row = $xml->row[0];
+                $pasta = new \stdClass();
+
+                // Mapeia todos os atributos XML para propriedades do objeto
+                foreach ($row->attributes() as $key => $value) {
+                    $pasta->{$key} = (string) $value;
+                }
+
+                // Garante que as propriedades esperadas existam, mesmo que venham nulas
+                $props = [
+                    'pst_previsaocontrole',
+                    'pst_previsaoproducao',
+                    'pst_observacao',
+                    // adicione outros campos esperados aqui
+                ];
+                foreach ($props as $prop) {
+                    if (!property_exists($pasta, $prop)) {
+                        $pasta->{$prop} = null;
+                    }
+                }
+
+                return $pasta;
+            }
+
+            return null;
         } catch (\Exception $e) {
             \Log::error('Erro ao buscar pasta: ' . $e->getMessage());
             return null;
         }
-
-        //return $numero;
     }
 
     /**
