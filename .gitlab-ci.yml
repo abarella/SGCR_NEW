@@ -99,7 +99,7 @@ deploy:
     - Write-Host "Copiando arquivos da aplicação..."
     - |
       try {
-        robocopy "${SOURCE_DIR}" "${DEPLOY_DIR}" /E /XD "node_modules" "tests" ".git" "vendor" "storage" "bootstrap/cache" /XF "*.log" ".env.example" "composer.json" "composer.lock" "package.json" "package-lock.json" "webpack.mix.js" "phpunit.xml" ".gitignore" ".gitattributes" "web.config" ".phpunit.result.cache" /R:3 /W:10
+        robocopy "${SOURCE_DIR}" "${DEPLOY_DIR}" /MIR /IS /IT /XD "node_modules" "tests" ".git" "vendor" "storage" "bootstrap/cache" /XF "*.log" ".env.example" "composer.json" "composer.lock" "package.json" "package-lock.json" "webpack.mix.js" "phpunit.xml" ".gitignore" ".gitattributes" "web.config" ".phpunit.result.cache" /R:3 /W:10
         Write-Host "Robocopy aplicação concluído (código: $LASTEXITCODE)"
       } catch {
         Write-Host "Robocopy aplicação concluído (com erro, mas continuando...)"

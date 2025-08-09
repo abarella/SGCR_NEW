@@ -43,38 +43,23 @@ class PspPsController extends Controller
                 'pst_numero' => $request->pst_numero
             ];
 
-            \Log::info('Filtros recebidos:', $filtros);
-            \Log::info('Sessão cdgrupo:', ['cdgrupo' => session('cdgrupo')]);
 
             $resultado = $this->pspPsService->listarPastas($filtros);
 
-            \Log::info('Resultado do service:', [
-                'tipo' => gettype($resultado),
-                'count' => is_array($resultado) ? count($resultado) : 'N/A',
-                'primeiro_item' => is_array($resultado) && !empty($resultado) ? get_class($resultado[0]) : 'N/A'
-            ]);
 
             $dados = [];
 
             // Processa os dados de forma mais flexível
             if (is_array($resultado) && !empty($resultado)) {
-                \Log::info('Processando dados:', ['count' => count($resultado)]);
+
 
                 $xmlString = '';
 
                 // Concatena todos os fragmentos XML
                 foreach ($resultado as $index => $item) {
-                    \Log::info("Processando item $index:", [
-                        'tipo' => gettype($item),
-                        'classe' => is_object($item) ? get_class($item) : 'N/A',
-                        'propriedades' => is_object($item) ? array_keys((array)$item) : []
-                    ]);
 
                     if (is_object($item)) {
                         $itemArray = (array)$item;
-
-                        // Log das propriedades disponíveis
-                        \Log::info("Propriedades do item $index:", $itemArray);
 
                         // Verifica se tem a propriedade XML
                         if (isset($itemArray['XML_F52E2B61-18A1-11d1-B105-00805F49916B'])) {
@@ -83,7 +68,7 @@ class PspPsController extends Controller
                     }
                 }
 
-                \Log::info('XML String final:', ['xml' => $xmlString, 'length' => strlen($xmlString)]);
+
 
                 // Processa o XML
                 if (!empty($xmlString)) {
@@ -96,7 +81,7 @@ class PspPsController extends Controller
                     $dom->loadXML($xmlString);
                     $rows = $dom->getElementsByTagName('row');
 
-                    \Log::info('Rows encontradas no XML:', ['count' => $rows->length]);
+
 
                     foreach ($rows as $row) {
                         try {
@@ -116,35 +101,19 @@ class PspPsController extends Controller
                                 'pst_observacao' => $row->getAttribute('pst_observacao'),
                             ];
                         } catch (\Exception $e) {
-                            \Log::error('Erro ao processar row XML:', [
-                                'error' => $e->getMessage(),
-                                'xml' => $row->C14N()
-                            ]);
                         }
                     }
 
                     libxml_clear_errors();
                 }
             } else {
-                \Log::warning('Resultado vazio ou não é array:', [
-                    'tipo' => gettype($resultado),
-                    'vazio' => empty($resultado)
-                ]);
             }
 
-            \Log::info('Dados processados:', [
-                'quantidade' => count($dados),
-                'primeiro_item' => !empty($dados) ? $dados[0] : null
-            ]);
 
             // Adiciona os botões de ação e formata os dados
             foreach ($dados as &$item) {
                 try {
                     $item['acoes'] = $this->getBotoesAcao($item);
-                    \Log::info('Item processado:', [
-                        'pst_numero' => $item['pst_numero'],
-                        'acoes' => $item['acoes']
-                    ]);
 
                     // Formata as datas se existirem
                     if (!empty($item['pst_previsaocontrole'])) {
@@ -154,10 +123,6 @@ class PspPsController extends Controller
                         //$item['pst_previsaoproducao'] = date('d/m/Y', strtotime($item['pst_previsaoproducao']));
                     }
                 } catch (\Exception $e) {
-                    \Log::error('Erro ao processar item:', [
-                        'error' => $e->getMessage(),
-                        'item' => $item
-                    ]);
                     $item = [
                         'pst_numero' => $item['pst_numero'] ?? '',
                         'nome_comercial' => '',
@@ -176,18 +141,9 @@ class PspPsController extends Controller
                 }
             }
 
-            \Log::info('Resposta final:', [
-                'dados_count' => count($dados),
-                'primeiro_item' => !empty($dados) ? $dados[0] : null
-            ]);
 
             return response()->json(['data' => $dados]);
         } catch (\Exception $e) {
-            \Log::error('Erro no método lista:', [
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ]);
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -204,13 +160,30 @@ class PspPsController extends Controller
 
     public function show($numero)
     {
-        $pasta = $this->pspPsService->getPasta($numero);
-        if (!$pasta) {
-            return redirect()->route('psp-ps.index')
-                ->with('error', 'Pasta não encontrada.');
-        }
+        try {
+            // Carrega dados básicos da pasta
+            $pasta = $this->pspPsService->getPasta($numero);
+            if (!$pasta) {
+                return redirect()->route('psp-ps.index')
+                    ->with('error', 'Pasta não encontrada.');
+            }
 
-        return view('psp-ps.show', compact('pasta'));
+            // Carrega dados das procedures
+            $lista2Data = $this->pspPsService->getLista2($numero);
+            $lista3Data = $this->pspPsService->getLista3($numero);
+
+            return view('psp-ps.show', compact('pasta', 'lista2Data', 'lista3Data'));
+
+        } catch (\Exception $e) {
+            \Log::error('Erro ao carregar dados da pasta:', [
+                'numero' => $numero,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return redirect()->route('psp-ps.index')
+                ->with('error', 'Erro ao carregar dados da pasta: ' . $e->getMessage());
+        }
     }
 
     public function edit($numero)
@@ -223,8 +196,22 @@ class PspPsController extends Controller
         }
         */
 
-        $pasta = $this->pspPsService->getPasta($numero);
-        //dd($pasta);
+        // Carrega dados de controle
+        $pasta_controle = $this->pspPsService->getPasta($numero, 'C');
+        // Carrega dados de produção
+        $pasta_producao = $this->pspPsService->getPasta($numero, 'P');
+
+        // Usa os dados de controle como base (para campos comuns como número da pasta)
+        $pasta = $pasta_controle ?: $pasta_producao;
+
+        // Se nenhum dos dois retornou dados, cria objetos vazios para evitar erros
+        if (!$pasta_controle) {
+            $pasta_controle = new \stdClass();
+        }
+        if (!$pasta_producao) {
+            $pasta_producao = new \stdClass();
+        }
+
         if (!$pasta) {
             return redirect()->route('psp-ps.index')
                 ->with('error', 'Pasta não encontrada.');
@@ -235,14 +222,14 @@ class PspPsController extends Controller
             $revisadores = $this->globalService->CarregarRevisado();
             if (!is_array($revisadores)) {
                 $revisadores = [];
-                \Log::warning('CarregarRevisado não retornou um array');
+
             }
 
             // Carrega situações de produção
             $producaoStatus = $this->globalService->carregarProducaStatus();
             if (!is_array($producaoStatus)) {
                 $producaoStatus = [];
-                \Log::warning('carregarProducaStatus não retornou um array');
+
             }
 
             // Carrega lista de status
@@ -250,83 +237,203 @@ class PspPsController extends Controller
             //dd($statusList);
             if (!is_array($statusList)) {
                 $statusList = [];
-                \Log::warning('carregarStatus não retornou um array');
+
             }
 
         } catch (\Exception $e) {
-            \Log::error('Erro ao carregar dados: ' . $e->getMessage());
+
             $revisadores = [];
             $producaoStatus = [];
             $statusList = [];
         }
 
-        return view('psp-ps.edit', compact('pasta', 'revisadores', 'producaoStatus', 'statusList'));
+        return view('psp-ps.edit', compact('pasta', 'pasta_controle', 'pasta_producao', 'revisadores', 'producaoStatus', 'statusList'));
     }
 
     public function update(Request $request, $numero)
     {
-        if (!Gate::allows('edit-psp-ps')) {
-            return redirect()->route('psp-ps.show', $numero)
-                ->with('error', 'Sem permissão para alterar.');
+
+        // Valida a senha do usuário logado
+        $user = auth()->user();
+        if (!$user) {
         }
 
+
+        // Verifica se a senha fornecida é a mesma do login
+        if (!\Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Senha incorreta.',
+                'type' => 'error'
+            ]);
+        }
+
+
+        // Validação apenas da senha (obrigatória) e formato das datas (se fornecidas)
         $this->validate($request, [
-            'pst_previsaocontrole' => 'required|date',
-            'pst_previsaoproducao' => 'required|date',
+            'pst_previsaocontrole' => 'nullable|date',
+            'pst_previsaoproducao' => 'nullable|date',
             'pst_observacao_controle' => 'nullable|string|max:1000',
             'pst_observacao_producao' => 'nullable|string|max:1000',
-            'cmbSitControle' => 'required',
-            'cmbSitProducao' => 'required',
-            'cmdStsControle' => 'required',
-            'cmdStsProducao' => 'required',
+            'cmbSitControle' => 'nullable',
+            'cmbSitProducao' => 'nullable',
+            'cmdStsControle' => 'nullable',
+            'cmdStsProducao' => 'nullable',
             'password' => 'required'
         ]);
 
         try {
             $this->pspPsService->updatePasta($numero, $request->all());
-            return redirect()->route('psp-ps.show', $numero)
-                ->with('success', 'Pasta atualizada com sucesso.');
+            return response()->json([
+                'success' => true,
+                'message' => 'Pasta atualizada com sucesso.',
+                'type' => 'success',
+                'redirect' => route('psp-ps.index')
+            ]);
         } catch (\Exception $e) {
-            return back()->withInput()
-                ->with('error', 'Erro ao atualizar: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao atualizar: ' . $e->getMessage(),
+                'type' => 'error'
+            ]);
         }
     }
 
     public function editDoc($numero)
     {
-        if (!Gate::allows('edit-psp-ps-doc')) {
-            return redirect()->route('psp-ps.show', $numero)
-                ->with('error', 'Sem permissão para alterar documentação.');
+        // Carrega dados de controle
+        $pasta_controle = $this->pspPsService->getPasta($numero, 'C');
+        // Carrega dados de produção
+        $pasta_producao = $this->pspPsService->getPasta($numero, 'P');
+
+        // Usa os dados de controle como base (para campos comuns como número da pasta)
+        $pasta = $pasta_controle ?: $pasta_producao;
+
+        // Se nenhum dos dois retornou dados, cria objetos vazios para evitar erros
+        if (!$pasta_controle) {
+            $pasta_controle = new \stdClass();
+        }
+        if (!$pasta_producao) {
+            $pasta_producao = new \stdClass();
         }
 
-        $pasta = $this->pspPsService->getPasta($numero);
         if (!$pasta) {
             return redirect()->route('psp-ps.index')
                 ->with('error', 'Pasta não encontrada.');
         }
 
-        return view('psp-ps.edit-doc', compact('pasta'));
+        // Carrega dados para os comboboxes
+        $producaoStatus = app(GlobalService::class)->carregarProducaStatus();
+        $statusList = app(GlobalService::class)->carregarStatus();
+
+        // Log para debug
+        \Log::info('editDoc - Dados carregados:', [
+            'numero' => $numero,
+            'pasta_controle_exists' => isset($pasta_controle),
+            'pasta_producao_exists' => isset($pasta_producao),
+            'producaoStatus_count' => count($producaoStatus),
+            'statusList_count' => count($statusList)
+        ]);
+
+        return view('psp-ps.edit-doc', compact('pasta', 'pasta_controle', 'pasta_producao', 'producaoStatus', 'statusList'));
     }
 
     public function updateDoc(Request $request, $numero)
     {
-        if (!Gate::allows('edit-psp-ps-doc')) {
-            return redirect()->route('psp-ps.show', $numero)
-                ->with('error', 'Sem permissão para alterar documentação.');
+        // Validação de senha
+        $user = auth()->user();
+        if (!$user) {
+            \Log::error('Usuário não autenticado');
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuário não autenticado.',
+                'type' => 'error'
+            ]);
         }
 
-        $this->validate($request, [
-            'data_entrega' => 'required|date',
-            'observacao' => 'nullable|string|max:1000'
+        \Log::info('Usuário autenticado:', [
+            'user_id' => $user->id,
+            'username' => $user->username,
+            'password_provided' => !empty($request->password)
+        ]);
+
+        if (!\Hash::check($request->password, $user->password)) {
+            \Log::error('Senha incorreta para usuário:', [
+                'user_id' => $user->id,
+                'username' => $user->username
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Senha incorreta.',
+                'type' => 'error'
+            ]);
+        }
+
+        \Log::info('Senha validada com sucesso para usuário:', [
+            'user_id' => $user->id,
+            'username' => $user->username
+        ]);
+
+        $request->validate([
+            'password' => 'required',
+            'data_entrega_controle' => 'nullable|date',
+            'data_entrega_producao' => 'nullable|date',
+            'pst_obsc' => 'nullable|string',
+            'pst_obsp' => 'nullable|string',
+            'cmdStsControle' => 'nullable|integer',
+            'cmdStsProducao' => 'nullable|integer',
+            'active_tab' => 'required|in:controle,producao'
         ]);
 
         try {
-            $this->pspPsService->updateDocumentacao($numero, $request->all());
-            return redirect()->route('psp-ps.show', $numero)
-                ->with('success', 'Documentação atualizada com sucesso.');
+            $active_tab = $request->input('active_tab');
+
+            // Prepara dados baseados no tab ativo
+            $dados = [
+                'pst_numero' => $numero,
+                'cdusuario' => $user->cdusuario,
+                'senha' => $request->password,
+                'cmdStsControle' => $request->input('cmdStsControle'),
+                'cmdStsProducao' => $request->input('cmdStsProducao')
+            ];
+
+            if ($active_tab === 'controle') {
+                $dados['data_entrega'] = $request->input('data_entrega_controle');
+                $dados['observacao'] = $request->input('pst_obsc');
+                $dados['tipo'] = 'C';
+            } else {
+                $dados['data_entrega'] = $request->input('data_entrega_producao');
+                $dados['observacao'] = $request->input('pst_obsp');
+                $dados['tipo'] = 'P';
+            }
+
+            $result = $this->pspPsService->updatePrevisao($numero, $dados);
+
+            if ($result) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Documentação atualizada com sucesso!',
+                    'redirect' => route('psp-ps.index')
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Erro ao atualizar documentação.',
+                    'type' => 'error'
+                ]);
+            }
         } catch (\Exception $e) {
-            return back()->withInput()
-                ->with('error', 'Erro ao atualizar: ' . $e->getMessage());
+            \Log::error('Erro ao atualizar documentação:', [
+                'numero' => $numero,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro interno do servidor: ' . $e->getMessage(),
+                'type' => 'error'
+            ]);
         }
     }
 
@@ -342,15 +449,10 @@ class PspPsController extends Controller
                 'pst_numero' => ''
             ];
 
-            \Log::info('Teste - Filtros:', $filtros);
+
 
             $resultado = $this->pspPsService->listarPastas($filtros);
 
-            \Log::info('Teste - Resultado:', [
-                'tipo' => gettype($resultado),
-                'count' => is_array($resultado) ? count($resultado) : 'N/A',
-                'primeiro_item' => is_array($resultado) && !empty($resultado) ? get_class($resultado[0]) : 'N/A'
-            ]);
 
             // Processa os dados de forma mais flexível
             $dados = [];
@@ -371,11 +473,6 @@ class PspPsController extends Controller
                 'primeiro_item_propriedades' => !empty($dados) ? array_keys($dados[0]) : []
             ]);
         } catch (\Exception $e) {
-            \Log::error('Erro no teste:', [
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ]);
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }

@@ -115,7 +115,7 @@ class GlobalService
             // Tenta carregar o XML
             $xml = simplexml_load_string($xmlResult);
             if (!$xml) {
-                Log::error('Erro ao converter XML para lotes');
+                //Log::error('Erro ao converter XML para lotes');
                 return [];
             }
 
@@ -128,7 +128,7 @@ class GlobalService
 
             return $lotes;
         } catch (\Exception $e) {
-            Log::error('Erro ao carregar lotes: ' . $e->getMessage());
+            //Log::error('Erro ao carregar lotes: ' . $e->getMessage());
             return [];
         }
     }
@@ -143,7 +143,7 @@ class GlobalService
             $sql = "EXEC sgcr.crsa.P1110_USUARIOS_MMRD";
             $sth = $dbh->prepare($sql);
             $sth->execute();
-            Log::debug('Procedure executada com sucesso: crsa.P1110_USUARIOS_MMRD');
+            //Log::debug('Procedure executada com sucesso: crsa.P1110_USUARIOS_MMRD');
 
             $xmlResult = "";
             while ($row = $sth->fetch(\PDO::FETCH_NUM)) {
@@ -151,7 +151,7 @@ class GlobalService
             }
 
             if (empty($xmlResult)) {
-                Log::warning('Procedure retornou vazio para técnicos.');
+                //Log::warning('Procedure retornou vazio para técnicos.');
                 return [];
             }
 
@@ -163,7 +163,7 @@ class GlobalService
 
             $xml = simplexml_load_string($xmlResult);
             if (!$xml) {
-                Log::error('Erro ao converter XML para técnicos');
+                //Log::error('Erro ao converter XML para técnicos');
                 return [];
             }
 
@@ -175,10 +175,10 @@ class GlobalService
                 ];
             }
 
-            Log::debug('Técnicos carregados com sucesso:', ['total' => count($tecnicos)]);
+            //Log::debug('Técnicos carregados com sucesso:', ['total' => count($tecnicos)]);
             return $tecnicos;
         } catch (\Exception $e) {
-            Log::error('Erro ao carregar técnicos: ' . $e->getMessage());
+            //Log::error('Erro ao carregar técnicos: ' . $e->getMessage());
             return []; // Sempre retorna array
         }
     }
@@ -194,7 +194,7 @@ class GlobalService
             $sql = "set nocount on; EXEC sgcr.crsa.P1110_USUARIOS @p052_grupocd=6, @p1110_ativo='A', @ordem=1";
             $sth = $dbh->prepare($sql);
             $sth->execute();
-            Log::debug('Procedure executada com sucesso: crsa.P1110_USUARIOS');
+            //Log::debug('Procedure executada com sucesso: crsa.P1110_USUARIOS');
 
             $xmlResult = "";
             while ($row = $sth->fetch(\PDO::FETCH_NUM)) {
@@ -202,7 +202,7 @@ class GlobalService
             }
 
             if (empty($xmlResult)) {
-                Log::warning('Procedure retornou vazio para técnicos.');
+                //Log::warning('Procedure retornou vazio para técnicos.');
                 return [];
             }
 
@@ -214,7 +214,7 @@ class GlobalService
 
             $xml = simplexml_load_string($xmlResult);
             if (!$xml) {
-                Log::error('Erro ao converter XML para técnicos');
+                //Log::error('Erro ao converter XML para técnicos');
                 return [];
             }
 
@@ -226,10 +226,10 @@ class GlobalService
                 ];
             }
 
-            Log::debug('Técnicos carregados com sucesso:', ['total' => count($tecnicos)]);
+            //Log::debug('Técnicos carregados com sucesso:', ['total' => count($tecnicos)]);
             return $tecnicos;
         } catch (\Exception $e) {
-            Log::error('Erro ao carregar técnicos: ' . $e->getMessage());
+            //Log::error('Erro ao carregar técnicos: ' . $e->getMessage());
             return []; // Sempre retorna array
         }
     }
@@ -245,7 +245,7 @@ class GlobalService
             $sql = "EXEC sgcr.crsa.PPST_PRODUCAOSTATUS";
             $sth = $dbh->prepare($sql);
             $sth->execute();
-            Log::debug('Procedure executada com sucesso: crsa.PPST_PRODUCAOSTATUS');
+            //Log::debug('Procedure executada com sucesso: crsa.PPST_PRODUCAOSTATUS');
 
             $xmlResult = "";
             while ($row = $sth->fetch(\PDO::FETCH_NUM)) {
@@ -253,7 +253,7 @@ class GlobalService
             }
 
             if (empty($xmlResult)) {
-                Log::warning('Procedure retornou vazio para PPST_PRODUCAOSTATUS.');
+                //Log::warning('Procedure retornou vazio para PPST_PRODUCAOSTATUS.');
                 return [];
             }
 
@@ -265,7 +265,7 @@ class GlobalService
 
             $xml = simplexml_load_string($xmlResult);
             if (!$xml) {
-                Log::error('Erro ao converter XML para prodstatus');
+                //Log::error('Erro ao converter XML para prodstatus');
                 return [];
             }
 
@@ -277,10 +277,10 @@ class GlobalService
                 ];
             }
 
-            Log::debug('prodstatus carregados com sucesso:', ['total' => count($prodstatus)]);
+            //Log::debug('prodstatus carregados com sucesso:', ['total' => count($prodstatus)]);
             return $prodstatus;
         } catch (\Exception $e) {
-            Log::error('Erro ao carregar prodstatus: ' . $e->getMessage());
+            //Log::error('Erro ao carregar prodstatus: ' . $e->getMessage());
             return []; // Sempre retorna array
         }
     }
@@ -296,7 +296,7 @@ class GlobalService
             $sql = "EXEC sgcr.crsa.PPST_STATUS  @codigo = null ";
             $sth = $dbh->prepare($sql);
             $sth->execute();
-            Log::debug('Procedure executada com sucesso: crsa.PPST_STATUS');
+            //Log::debug('Procedure executada com sucesso: crsa.PPST_STATUS');
 
             $xmlResult = "";
             while ($row = $sth->fetch(\PDO::FETCH_NUM)) {
@@ -304,7 +304,7 @@ class GlobalService
             }
 
             if (empty($xmlResult)) {
-                Log::warning('Procedure retornou vazio para PPST_STATUS.');
+                //Log::warning('Procedure retornou vazio para PPST_STATUS.');
                 return [];
             }
 
@@ -316,7 +316,7 @@ class GlobalService
 
             $xml = simplexml_load_string($xmlResult);
             if (!$xml) {
-                Log::error('Erro ao converter XML para prodstatus');
+                //Log::error('Erro ao converter XML para prodstatus');
                 return [];
             }
 
@@ -328,10 +328,10 @@ class GlobalService
                 ];
             }
 
-            Log::debug('status carregados com sucesso:', ['total' => count($status)]);
+            //Log::debug('status carregados com sucesso:', ['total' => count($status)]);
             return $status;
         } catch (\Exception $e) {
-            Log::error('Erro ao carregar prodstatus: ' . $e->getMessage());
+            //Log::error('Erro ao carregar prodstatus: ' . $e->getMessage());
             return []; // Sempre retorna array
         }
     }

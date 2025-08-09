@@ -123,6 +123,13 @@
         white-space: nowrap;
         padding: 5px 8px;
     }
+    /* Cabeçalho do DataTable azul com letra branca */
+    .dataTables_wrapper .table thead th {
+        background-color: #007bff !important;
+        border-color: #0056b3 !important;
+        color: white !important;
+        font-weight: 100;
+    }
 </style>
 @stop
 

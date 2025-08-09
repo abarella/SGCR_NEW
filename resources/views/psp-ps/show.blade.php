@@ -1,81 +1,145 @@
 @extends('adminlte::page')
 
-@section('title', 'PSP-PS - Detalhes')
+@section('title', 'PSP-PS - Detalhes da Pasta')
 
 @section('content_header')
-    <h1>Detalhes da Pasta {{ $pasta->pst_numero }}</h1>
+    <h5 class="m-0">Pasta Nº {{ $pasta->pst_numero ?? 'N/A' }}
+        @if(isset($pasta->pst_produto510))
+            - Produto: {{ $pasta->pst_produto510 }}
+        @endif
+        @if(isset($pasta->Lote))
+            - Lote: {{ $pasta->Lote }}
+        @endif
+    </h5>
 @stop
 
 @section('content')
-<div class="card">
-    <div class="card-body">
-        <div class="row">
-            <div class="col-md-6">
-                <dl class="row">
-                    <dt class="col-sm-4">Número da Pasta</dt>
-                    <dd class="col-sm-8">{{ $pasta->pst_numero }}</dd>
 
-                    <dt class="col-sm-4">Produto</dt>
-                    <dd class="col-sm-8">{{ $pasta->nome_comercial }}</dd>
 
-                    <dt class="col-sm-4">Lote</dt>
-                    <dd class="col-sm-8">{{ $pasta->lote }}</dd>
-                </dl>
+<div class="row">
+    <!-- Lista 1 - PPST_LISTA2 (Registros/Observação) -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title">Registros</h6>
             </div>
-            <div class="col-md-6">
-                <dl class="row">
-                    <dt class="col-sm-4">Registro</dt>
-                    <dd class="col-sm-8">{{ $pasta->registro }}</dd>
-
-                    <dt class="col-sm-4">Previsão Controle</dt>
-                    <dd class="col-sm-8">{{ \Carbon\Carbon::parse($pasta->pst_previsaocontrole)->format('d/m/Y') }}</dd>
-
-                    <dt class="col-sm-4">Previsão Produção</dt>
-                    <dd class="col-sm-8">{{ \Carbon\Carbon::parse($pasta->pst_previsaoproducao)->format('d/m/Y') }}</dd>
-                </dl>
-            </div>
-        </div>
-
-        <div class="row mt-4">
-            <div class="col-md-12">
-                <dl class="row">
-                    <dt class="col-sm-2">Status</dt>
-                    <dd class="col-sm-10">{{ $pasta->status }}</dd>
-
-                    <dt class="col-sm-2">Status Produção</dt>
-                    <dd class="col-sm-10">{{ $pasta->status_producao }}</dd>
-
-                    <dt class="col-sm-2">Obs. Produção</dt>
-                    <dd class="col-sm-10">{{ $pasta->pst_obsp }}</dd>
-
-                    <dt class="col-sm-2">Obs. Controle</dt>
-                    <dd class="col-sm-10">{{ $pasta->pst_obsc }}</dd>
-
-                    <dt class="col-sm-2">Observação</dt>
-                    <dd class="col-sm-10">{{ $pasta->pst_observacao }}</dd>
-                </dl>
+            <div class="card-body">
+                @if(isset($lista2Data) && count($lista2Data) > 0)
+                    <div class="table-responsive">
+                        <table class="table table-striped table-sm">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Usuário</th>
+                                    <th>Registros</th>
+                                    <th>Observação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($lista2Data as $item)
+                                    <tr>
+                                        <td>{{ isset($item->data) ? $item->data : '' }}</td>
+                                        <td>{{ isset($item->nome) ? $item->nome : '' }}</td>
+                                        <td>{{ isset($item->ocorrencia) ? $item->ocorrencia : '' }}</td>
+                                        <td>{{ isset($item->pstfase_obs) ? $item->pstfase_obs : '' }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="alert alert-info">
+                        Nenhum registro encontrado.
+                    </div>
+                @endif
             </div>
         </div>
+    </div>
 
-        <div class="row mt-4">
-            <div class="col-12">
-                <a href="{{ route('psp-ps.index') }}" class="btn btn-secondary">Voltar</a>
-
-                @can('edit-psp-ps')
-                    @if(session('cdgrupo') == 6)
-                        <a href="{{ route('psp-ps.edit', $pasta->pst_numero) }}"
-                           class="btn btn-primary">Alterar</a>
-                    @endif
-                @endcan
-
-                @can('edit-psp-ps-doc')
-                    @if(in_array(session('cdgrupo'), [2,3,4,5,6]))
-                        <a href="{{ route('psp-ps.edit-doc', $pasta->pst_numero) }}"
-                           class="btn btn-info">Alterar Data de Entrega</a>
-                    @endif
-                @endcan
+    <!-- Lista 2 - PPST_LISTA3 (Ocorrências) -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title">Ocorrências</h6>
+            </div>
+            <div class="card-body">
+                @if(isset($lista3Data) && count($lista3Data) > 0)
+                    <div class="table-responsive">
+                        <table class="table table-striped table-sm">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Usuário</th>
+                                    <th>Ocorrência</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($lista3Data as $item)
+                                    <tr>
+                                        <td>{{ isset($item->data) ? $item->data : '' }}</td>
+                                        <td>{{ isset($item->nome) ? $item->nome : '' }}</td>
+                                        <td>{{ isset($item->ocorrencia) ? $item->ocorrencia : '' }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="alert alert-info">
+                        Nenhum registro encontrado.
+                    </div>
+                @endif
             </div>
         </div>
     </div>
 </div>
+
+<!-- Botões de Ação -->
+<div class="row mt-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <a href="{{ route('psp-ps.index') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@stop
+
+@section('css')
+<style>
+    .table th {
+        font-size: 0.85rem;
+        font-weight: bold;
+    }
+    .table td {
+        font-size: 0.8rem;
+    }
+    .card-header h6 {
+        margin: 0;
+        font-weight: bold;
+    }
+    /* Cabeçalho da tabela azul com letra branca */
+    .thead-dark th {
+        background-color: #007bff !important;
+        border-color: #0056b3 !important;
+        color: white !important;
+    }
+</style>
+@stop
+
+@section('js')
+<script>
+$(document).ready(function() {
+    // Adiciona classes para melhorar a responsividade
+    $('.table-responsive').addClass('table-sm');
+
+    // Log para debug
+    console.log('Lista 2:', @json($lista2Data ?? []));
+    console.log('Lista 3:', @json($lista3Data ?? []));
+});
+</script>
 @stop

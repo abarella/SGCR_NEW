@@ -119,7 +119,6 @@ class ComposerStaticInitda9b7a1dc1dd923105198c572cc7df8d
         'N' => 
         array (
             'NunoMaduro\\Collision\\' => 21,
-            'Nette\\' => 6,
         ),
         'M' => 
         array (
@@ -416,10 +415,6 @@ class ComposerStaticInitda9b7a1dc1dd923105198c572cc7df8d
         'NunoMaduro\\Collision\\' => 
         array (
             0 => __DIR__ . '/..' . '/nunomaduro/collision/src',
-        ),
-        'Nette\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/nette/utils/src',
         ),
         'Monolog\\' => 
         array (
