@@ -8,6 +8,7 @@ use App\Http\Controllers\PspPsController;
 
 
 
+
 Route::get('/', function () {
     return view('auth.login');
 });
@@ -59,5 +60,6 @@ Route::prefix('dfv-ds')->name('dfv-ds.')->group(function() {
 
 
 Route::get('/telescope', [\Laravel\Telescope\Http\Controllers\HomeController::class, 'index']);
+
 
 
