@@ -39,6 +39,7 @@ class SGFPService
      */
     public function validaSenha($usuario, $senha)
     {
+    
         try {
             $dbh = DB::connection()->getPdo();
             $sql = "exec sgcr.crsa.[P1110_CONFSENHA] @p1110_usuarioid = :p1110_usuarioid, @p1110_senha = :p1110_senha, @resulta = :resulta, @mensa = :mensa";
@@ -78,7 +79,7 @@ class SGFPService
     {
         try {
             $dbh = DB::connection()->getPdo();
-            $query = "exec sgcr.crsa.uspP0600_EQPTO_LISTA " . $pstNumero . ",''";
+            $query = "exec sgcr.crsa.P0600_EQPTO_LISTA " . $pstNumero . ",''";
             $stmt = $dbh->query($query);
             
             $prep = "<form action='' target='_top' method='POST' name='form1eqp' id='form1eqp' enctype='multipart/form-data'>";
@@ -178,7 +179,7 @@ class SGFPService
             $prep1 .= "]";
             
             // Segundo query para combo
-            $query = "exec sgcr.crsa.uspP0026_EQPTO_CATEGORIA 'A'";
+            $query = "exec sgcr.crsa.P0026_EQPTO_CATEGORIA 'A'";
             $stmt = $dbh->query($query);
             $prep = "<select name='eqpCategoria' id='eqpCategoria' class='form-control form-control-sm' onchange='TrocaCategoria(this.value)' style='width:100%' >";
             $prep .= "<option value=0>Selecione</option>";
@@ -212,7 +213,7 @@ class SGFPService
             
             if ($lote) {
                 $loteArray = explode(" ", $lote);
-                $query = "set nocount on; exec sgcr.crsa.uspP0600_MATERIAL_SELlote " . $loteArray[0];
+                $query = "set nocount on; exec sgcr.crsa.P0600_MATERIAL_SELlote " . $loteArray[0];
             } else {
                 $query = "select NrEtqFrc, prodetq_produto, LoteCR, convert(varchar(10),ProdVali,103) ProdVali from sgcr.crsa.tetq402_produto a left outer join sgcr.crsa.tetq400_etqfrasco b on(a.prodetq_codigo=b.prodetq_codigo) where 1=1 and prodetq_Ativo = 'S'";
             }
@@ -262,7 +263,7 @@ class SGFPService
     {
         try {
             $dbh = DB::connection()->getPdo();
-            $query = "exec sgcr.crsa.uspP0015_MARCA_LISTA '1'";
+            $query = "exec sgcr.crsa.P0015_MARCA_LISTA '1'";
             $stmt = $dbh->query($query);
             
             $prep = "<select name='matMarca' id='matMarca' class='form-control form-control-sm' style='width:100%' >";
@@ -289,7 +290,7 @@ class SGFPService
     {
         try {
             $dbh = DB::connection()->getPdo();
-            $query = "exec sgcr.crsa.uspP0030_MATERIAL_TIPO '1'";
+            $query = "exec sgcr.crsa.P0030_MATERIAL_TIPO '1'";
             $stmt = $dbh->query($query);
             
             $prep = "<select name='matMaterial' id='matMaterial' class='form-control form-control-sm' style='width:100%' >";
@@ -317,7 +318,7 @@ class SGFPService
     {
         try {
             $dbh = DB::connection()->getPdo();
-            $sql = "set nocount on; exec sgcr.crsa.uspP0600_MATERIAIS_LISTA " . $pstNumero . ",1, ''";
+            $sql = "set nocount on; exec sgcr.crsa.P0600_MATERIAIS_LISTA " . $pstNumero . ",1, ''";
             $stmt = $dbh->prepare($sql);
             $stmt->execute();
             
@@ -381,7 +382,7 @@ class SGFPService
     {
         try {
             $dbh = DB::connection()->getPdo();
-            $query = "exec sgcr.crsa.uspP0600_LISTA_CELA " . $pstNumero;
+            $query = "exec sgcr.crsa.P0600_LISTA_CELA " . $pstNumero;
             $stmt = $dbh->query($query);
             
             $prep = "";
@@ -423,7 +424,7 @@ class SGFPService
     {
         try {
             $dbh = DB::connection()->getPdo();
-            $query = "exec sgcr.crsa.uspP0601_Materiais " . $pstNumero;
+            $query = "exec sgcr.crsa.P0601_Materiais " . $pstNumero;
             $stmt = $dbh->query($query);
             
             $prep = "";
@@ -502,7 +503,7 @@ class SGFPService
     {
         try {
             $dbh = DB::connection()->getPdo();
-            $query = "set nocount on;exec sgcr.crsa.[uspP0110_ATIVIDADE_SOLICITADA] " . $pstNumero . ", '', '', '', '', ''";
+            $query = "set nocount on;exec sgcr.crsa.[P0110_ATIVIDADE_SOLICITADA] " . $pstNumero . ", '', '', '', '', ''";
             $stmt = $dbh->query($query);
             
             $v1 = 0;
@@ -530,7 +531,7 @@ class SGFPService
     {
         try {
             $dbh = DB::connection()->getPdo();
-            $query = "set nocount on;exec sgcr.crsa.[uspP0110_ATIVIDADE_SOLICITADA] " . $pstNumero . ", '', '', '', '', ''";
+            $query = "set nocount on;exec sgcr.crsa.[P0110_ATIVIDADE_SOLICITADA] " . $pstNumero . ", '', '', '', '', ''";
             $stmt = $dbh->query($query);
             
             $prep = "";
@@ -558,7 +559,7 @@ class SGFPService
     {
         try {
             $dbh = DB::connection()->getPdo();
-            $query = "exec sgcr.crsa.uspP0600_FRACIONAMENTO_RD " . $pstNumero . ", '', '', ''";
+            $query = "exec sgcr.crsa.P0600_FRACIONAMENTO_RD " . $pstNumero . ", '', '', ''";
             $stmt = $dbh->query($query);
             
             $prep = "";
@@ -718,7 +719,7 @@ class SGFPService
             }
             
             $dbh = DB::connection()->getPdo();
-            $query = "exec sgcr.crsa.uspP1110_USUARIOS ";
+            $query = "exec sgcr.crsa.P1110_USUARIOS ";
             $stmt = $dbh->query($query);
             
             $prep = "<select id='" . $cmbidname . "' name='" . $cmbidname . "' class='form-control form-control-sm'>";
@@ -752,7 +753,7 @@ class SGFPService
     {
         try {
             $dbh = DB::connection()->getPdo();
-            $query = "exec sgcr.crsa.uspP1110_USUARIOS_I131 ";
+            $query = "exec sgcr.crsa.P1110_USUARIOS_I131 ";
             $stmt = $dbh->query($query);
             
             $prep = "<select id='cmbTecnico' name='cmbTecnico' class='form-control form-control-sm'>";
@@ -789,7 +790,7 @@ class SGFPService
             $dbh = DB::connection()->getPdo();
             
             // Primeiro busca o ID da CQ
-            $sql0 = "set nocount on; exec sgcr.crsa.uspP0551_LISTA0 " . $pstNumero . "," . session('usuarioID');
+            $sql0 = "set nocount on; exec sgcr.crsa.P0551_LISTA0 " . $pstNumero . "," . session('usuarioID');
             $stmt0 = $dbh->prepare($sql0);
             $stmt0->execute();
             
@@ -799,7 +800,7 @@ class SGFPService
             }
             
             // Agora busca as amostras
-            $sql = "set nocount on; exec sgcr.crsa.uspP0551_LISTA " . $p551_cq_id . ",1," . session('usuarioID');
+            $sql = "set nocount on; exec sgcr.crsa.P0551_LISTA " . $p551_cq_id . ",1," . session('usuarioID');
             $stmt = $dbh->prepare($sql);
             $stmt->execute();
             
@@ -877,7 +878,7 @@ class SGFPService
     {
         try {
             $dbh = DB::connection()->getPdo();
-            $sql = "set nocount on; exec sgcr.crsa.uspP0551_LISTA0 " . $pstNumero . "," . session('usuarioID');
+            $sql = "set nocount on; exec sgcr.crsa.P0551_LISTA0 " . $pstNumero . "," . session('usuarioID');
             $stmt = $dbh->prepare($sql);
             $stmt->execute();
             
@@ -939,7 +940,7 @@ class SGFPService
             }
             
             $dbh = DB::connection()->getPdo();
-            $sql = "set nocount on;exec vendaspelicano.dbo.uspBlindagemXPasta " . $lote . ",'" . $serie . "'";
+            $sql = "set nocount on;exec vendaspelicano.dbo.BlindagemXPasta " . $lote . ",'" . $serie . "'";
             $stmt = $dbh->prepare($sql);
             $stmt->execute();
             
@@ -1165,7 +1166,7 @@ class SGFPService
             if ($partFim == '') $partFim = 0;
             
             $dbh = DB::connection()->getPdo();
-            $query = "exec sgcr.crsa.uspP0110_PEDIDOS_CONTA " . $pstNumero . "," . $partIni . "," . $partFim;
+            $query = "exec sgcr.crsa.P0110_PEDIDOS_CONTA " . $pstNumero . "," . $partIni . "," . $partFim;
             $stmt = $dbh->query($query);
             
             $regs = 0;
@@ -1191,7 +1192,7 @@ class SGFPService
             
             // Calcula partidas menores
             $partIniMenor = $partIni - 1;
-            $query = "exec sgcr.crsa.uspP0110_PEDIDOS_CONTA " . $pstNumero . ",0," . $partIniMenor;
+            $query = "exec sgcr.crsa.P0110_PEDIDOS_CONTA " . $pstNumero . ",0," . $partIniMenor;
             $stmt = $dbh->query($query);
             
             $regsMenor = 0;
@@ -1285,7 +1286,7 @@ class SGFPService
             $solucoes = substr($dados['solucoes'], 0, -1); // Remove último caractere
             
             $dbh = DB::connection()->getPdo();
-            $query = "exec sgcr.crsa.uspP0601_Solucoes " . $dados['id_limpeza'] . "," . $dados['pasta'] . "," . $dados['lote'] . ",'" . $solucoes . "','" . $dados['usuario'] . "'";
+            $query = "exec sgcr.crsa.P0601_Solucoes " . $dados['id_limpeza'] . "," . $dados['pasta'] . "," . $dados['lote'] . ",'" . $solucoes . "','" . $dados['usuario'] . "'";
             $stmt = $dbh->prepare($query);
             
             return $stmt->execute();
@@ -1305,7 +1306,7 @@ class SGFPService
     {
         try {
             $dbh = DB::connection()->getPdo();
-            $stmt = $dbh->prepare("exec sgcr.crsa.uspP0095_Operadores :p01, :p02, :p03, :p04, :p05, :p06, :p07, :p08, :p09, :p10, :p11, :p12, :p13, :p14, :p15");
+            $stmt = $dbh->prepare("exec sgcr.crsa.P0095_Operadores :p01, :p02, :p03, :p04, :p05, :p06, :p07, :p08, :p09, :p10, :p11, :p12, :p13, :p14, :p15");
             
             $stmt->bindParam(':p01', $dados["pstnro"], \PDO::PARAM_STR);
             $stmt->bindParam(':p02', $dados["cmbCalculo1"], \PDO::PARAM_STR);
@@ -1381,7 +1382,7 @@ class SGFPService
     {
         try {
             $dbh = DB::connection()->getPdo();
-            $stmt = $dbh->prepare("exec sgcr.crsa.uspP0110_LOTE_NUMERO :param1");
+            $stmt = $dbh->prepare("exec sgcr.crsa.P0110_LOTE_NUMERO :param1");
             $stmt->bindParam(':param1', $lote, \PDO::PARAM_STR);
             $stmt->execute();
             
@@ -1425,6 +1426,417 @@ class SGFPService
                 'volume' => '0',
                 'atividade_especifica' => '0'
             ];
+        }
+    }
+
+    // ===================================
+    // ESCALA DE TAREFAS
+    // ===================================
+
+    /**
+     * Retorna lista de tarefas da escala
+     * 
+     * @return array
+     */
+    public function retornaEscalaTarefas()
+    {
+        try {
+            $dbh = DB::connection()->getPdo();
+            $sql = "SELECT ID, Nome, cdUsuario, datatualizacao FROM sgcr.crsa.T0111_ESCALA_TAREFAS ORDER BY ID DESC";
+            $stmt = $dbh->query($sql);
+            
+            return $stmt->fetchAll(\PDO::FETCH_OBJ);
+        } catch (\Exception $e) {
+            Log::error('Erro em retornaEscalaTarefas: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Retorna lista de tarefas da escala em formato JSON para DataTables
+     * 
+     * @return array
+     */
+    public function retornaEscalaTarefasJson()
+    {
+        try {
+            $dbh = DB::connection()->getPdo();
+            $sql = "SELECT ID, Nome, cdUsuario, datatualizacao FROM sgcr.crsa.T0111_ESCALA_TAREFAS ORDER BY ID DESC";
+            $stmt = $dbh->query($sql);
+            
+            $tarefas = [];
+            while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+                $tarefas[] = [
+                    'ID' => $row['ID'],
+                    'Nome' => $row['Nome'],
+                    'datatualizacao' => date('d/m/Y H:i', strtotime($row['datatualizacao'])),
+                    'cdUsuario' => $row['cdUsuario']
+                ];
+            }
+            
+            return $tarefas;
+        } catch (\Exception $e) {
+            Log::error('Erro em retornaEscalaTarefasJson: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Insere uma nova tarefa na escala
+     * 
+     * @param string $nomeTarefa
+     * @param string $usuario
+     * @return bool
+     */
+    public function inserirEscalaTarefa($nomeTarefa, $usuario)
+    {
+        try {
+            $dbh = DB::connection()->getPdo();
+            $sql = "INSERT INTO sgcr.crsa.T0111_ESCALA_TAREFAS (Nome, datatualizacao, cdUsuario) VALUES (:nome, GETDATE(), :usuario)";
+            $stmt = $dbh->prepare($sql);
+            $stmt->bindParam(':nome', $nomeTarefa, \PDO::PARAM_STR);
+            $stmt->bindParam(':usuario', $usuario, \PDO::PARAM_STR);
+            
+            return $stmt->execute();
+        } catch (\Exception $e) {
+            Log::error('Erro em inserirEscalaTarefa: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Atualiza uma tarefa existente na escala
+     * 
+     * @param int $id
+     * @param string $nomeTarefa
+     * @param string $usuario
+     * @return bool
+     */
+    public function atualizarEscalaTarefa($id, $nomeTarefa, $usuario)
+    {
+        try {
+            $dbh = DB::connection()->getPdo();
+            $sql = "UPDATE sgcr.crsa.T0111_ESCALA_TAREFAS SET Nome = :nome, datatualizacao = GETDATE(), cdUsuario = :usuario WHERE ID = :id";
+            $stmt = $dbh->prepare($sql);
+            $stmt->bindParam(':nome', $nomeTarefa, \PDO::PARAM_STR);
+            $stmt->bindParam(':usuario', $usuario, \PDO::PARAM_STR);
+            $stmt->bindParam(':id', $id, \PDO::PARAM_INT);
+            
+            return $stmt->execute();
+        } catch (\Exception $e) {
+            Log::error('Erro em atualizarEscalaTarefa: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Exclui uma tarefa da escala
+     * 
+     * @param int $id
+     * @param string $usuario
+     * @return bool
+     */
+    public function excluirEscalaTarefa($id, $usuario)
+    {
+        try {
+            $dbh = DB::connection()->getPdo();
+            $sql = "DELETE FROM sgcr.crsa.T0111_ESCALA_TAREFAS WHERE ID = :id";
+            $stmt = $dbh->prepare($sql);
+            $stmt->bindParam(':id', $id, \PDO::PARAM_INT);
+            
+            return $stmt->execute();
+        } catch (\Exception $e) {
+            Log::error('Erro em excluirEscalaTarefa: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    // ===================================
+    // FUNÇÕES PARA ESCALA SEMANAL
+    // ===================================
+
+    /**
+     * Retorna tipos de processo para escala semanal
+     * 
+     * @return string
+     */
+    public function retornaEscalaTipoProcesso()
+    {
+        try {
+            $dbh = DB::connection()->getPdo();
+            $sql = "SELECT DISTINCT nome FROM sgcr.crsa.T0111_ESCALA_TAREFAS WHERE nome IS NOT NULL ORDER BY nome";
+            $stmt = $dbh->query($sql);
+            
+            $html = '<option value="">Selecione...</option>';
+            while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+                $html .= '<option value="' . $row['nome'] . '">' . $row['nome'] . '</option>';
+            }
+            
+            return $html;
+        } catch (\Exception $e) {
+            Log::error('Erro em retornaEscalaTipoProcesso: ' . $e->getMessage());
+            return '<option value="">Erro ao carregar tipos de processo</option>';
+        }
+    }
+
+    /**
+     * Retorna tarefas para escala semanal
+     * 
+     * @return string
+     */
+    public function retornaEscalaTarefasSenanal()
+    {
+        try {
+            $dbh = DB::connection()->getPdo();
+            $sql = "SELECT ID, Nome FROM sgcr.crsa.T0111_ESCALA_TAREFAS ORDER BY Nome";
+            $stmt = $dbh->query($sql);
+            
+            $html = '<option value="">Selecione...</option>';
+            while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+                $html .= '<option value="' . $row['ID'] . '">' . $row['Nome'] . '</option>';
+            }
+            
+            return $html;
+        } catch (\Exception $e) {
+            Log::error('Erro em retornaEscalaTarefasSenanal: ' . $e->getMessage());
+            return '<option value="">Erro ao carregar tarefas</option>';
+        }
+    }
+
+    /**
+     * Retorna lista de usuários para combobox
+     * 
+     * @return string
+     */
+    public function retornaListaUsuariosCMB()
+    {
+        try {
+            $dbh = DB::connection()->getPdo();
+            $sql = "SELECT p1110_usuarioid, p1110_nome FROM sgcr.crsa.T1110_USUARIOS WHERE p1110_Ativo = 'A' and p1110_nome <> '' ORDER BY p1110_nome";
+            $stmt = $dbh->query($sql);
+            
+            $html = '';
+            while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+                $html .= '<option value="' . $row['p1110_usuarioid'] . '">' . $row['p1110_nome'] . '</option>';
+            }
+            
+            return $html;
+        } catch (\Exception $e) {
+            Log::error('Erro em retornaListaUsuariosCMB: ' . $e->getMessage());
+            return '<option value="">Erro ao carregar usuários</option>';
+        }
+    }
+
+    /**
+     * Retorna usuários associados para um lote e tarefa específicos
+     * 
+     * @param string $lote
+     * @param string $tarefa
+     * @return string
+     */
+    public function retornaUsuariosAssocCMB($lote, $tarefa)
+    {
+        try {
+            $dbh = DB::connection()->getPdo();
+            $sql = "SELECT DISTINCT u.cdUsuario, u.Nome, 'dispon' as tipo
+                    FROM sgcr.crsa.Usuarios u
+                    WHERE u.Ativo = 1 
+                    AND u.cdUsuario NOT IN (
+                        SELECT DISTINCT Responsavel 
+                        FROM sgcr.crsa.T0111_ESCALA_TAREFAS 
+                        WHERE Lote = :lote AND TarefaID = :tarefa
+                    )
+                    UNION ALL
+                    SELECT DISTINCT u.cdUsuario, u.Nome, 'assoc' as tipo
+                    FROM sgcr.crsa.Usuarios u
+                    INNER JOIN sgcr.crsa.T0111_ESCALA_TAREFAS e ON u.cdUsuario = e.Responsavel
+                    WHERE u.Ativo = 1 
+                    AND e.Lote = :lote2 AND e.TarefaID = :tarefa2
+                    ORDER BY tipo, Nome";
+            
+            $stmt = $dbh->prepare($sql);
+            $stmt->bindParam(':lote', $lote, \PDO::PARAM_STR);
+            $stmt->bindParam(':tarefa', $tarefa, \PDO::PARAM_STR);
+            $stmt->bindParam(':lote2', $lote, \PDO::PARAM_STR);
+            $stmt->bindParam(':tarefa2', $tarefa, \PDO::PARAM_STR);
+            $stmt->execute();
+            
+            $resultado = '';
+            while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+                $resultado .= $row['tipo'] . ',' . $row['cdUsuario'] . ',' . $row['Nome'] . ',';
+            }
+            
+            return rtrim($resultado, ',');
+        } catch (\Exception $e) {
+            Log::error('Erro em retornaUsuariosAssocCMB: ' . $e->getMessage());
+            return '';
+        }
+    }
+
+    /**
+     * Retorna escala semanal
+     * 
+     * @return string
+     */
+    public function retornaEscalaSemanal()
+    {
+        try {
+            $dbh = DB::connection()->getPdo();
+            $sql = "SELECT e.ID, e.Lote, p.Nome as Produto, e.TipoProcesso, 
+                           e.DataInicio, e.DataFim, e.DataExecucao, t.Nome as Tarefa,
+                           e.Responsaveis
+                    FROM sgcr.crsa.T0111_ESCALA_TAREFAS e
+                    LEFT JOIN sgcr.crsa.Produtos p ON e.ProdutoID = p.ID
+                    LEFT JOIN sgcr.crsa.T0111_ESCALA_TAREFAS t ON e.TarefaID = t.ID
+                    ORDER BY e.DataInicio DESC, e.Lote";
+            $stmt = $dbh->query($sql);
+            
+            $html = '';
+            $contador = 1;
+            while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+                $html .= '<tr>';
+                $html .= '<td>';
+                $html .= '<button type="button" class="btn btn-sm btn-outline-primary" onclick="fuEditaEscala(' . 
+                         $row['ID'] . ',\'' . $row['Lote'] . '\',\'' . $row['Tarefa'] . '\',\'' . 
+                         $row['Produto'] . '\',\'' . $this->formataDataISO($row['DataInicio']) . '\',\'' . 
+                         $this->formataDataISO($row['DataFim']) . '\',\'\',\'' . 
+                         $this->formataDataHora($row['DataExecucao']) . '\',\'' . $row['TipoProcesso'] . '\')">';
+                $html .= '<i class="fas fa-edit"></i></button>';
+                $html .= '<button type="button" class="btn btn-sm btn-outline-danger" onclick="fuDeleta(' . $row['ID'] . ')">';
+                $html .= '<i class="fas fa-trash"></i></button>';
+                $html .= '</td>';
+                $html .= '<td style="text-align:center;">' . $contador . '</td>';
+                $html .= '<td>' . $row['Lote'] . '</td>';
+                $html .= '<td>' . $row['Produto'] . '</td>';
+                $html .= '<td>' . $row['TipoProcesso'] . '</td>';
+                $html .= '<td>' . $this->formataDataISO($row['DataInicio']) . '</td>';
+                $html .= '<td>' . $this->formataDataISO($row['DataFim']) . '</td>';
+                $html .= '<td>' . $this->formataDataHora($row['DataExecucao']) . '</td>';
+                $html .= '<td>' . $row['Tarefa'] . '</td>';
+                $html .= '<td>' . $row['Responsaveis'] . '</td>';
+                $html .= '</tr>';
+                $contador++;
+            }
+            
+            return $html;
+        } catch (\Exception $e) {
+            Log::error('Erro em retornaEscalaSemanal: ' . $e->getMessage());
+            return '<tr><td colspan="10">Erro ao carregar dados da escala semanal</td></tr>';
+        }
+    }
+
+    /**
+     * Insere uma nova escala semanal
+     * 
+     * @param array $dados
+     * @return bool
+     */
+    public function inserirEscalaSemanal($dados)
+    {
+        try {
+            $dbh = DB::connection()->getPdo();
+            $sql = "INSERT INTO sgcr.crsa.T0111_ESCALA_TAREFAS 
+                    (Lote, ProdutoID, TipoProcesso, DataInicio, DataFim, TarefaID, DataExecucao, Responsaveis, UsuarioCriacao, DataCriacao) 
+                    VALUES (:lote, :produto, :tipoProcesso, :dataInicio, :dataFim, :tarefa, :dataExecucao, :responsaveis, :usuario, GETDATE())";
+            
+            $stmt = $dbh->prepare($sql);
+            $stmt->bindParam(':lote', $dados['lote'], \PDO::PARAM_STR);
+            $stmt->bindParam(':produto', $dados['produto'], \PDO::PARAM_STR);
+            $stmt->bindParam(':tipoProcesso', $dados['tipoProcesso'], \PDO::PARAM_STR);
+            $stmt->bindParam(':dataInicio', $dados['dataInicio'], \PDO::PARAM_STR);
+            $stmt->bindParam(':dataFim', $dados['dataFim'], \PDO::PARAM_STR);
+            $stmt->bindParam(':tarefa', $dados['tarefa'], \PDO::PARAM_STR);
+            $stmt->bindParam(':dataExecucao', $dados['dataExecucao'], \PDO::PARAM_STR);
+            $stmt->bindParam(':responsaveis', $dados['usuarios'], \PDO::PARAM_STR);
+            $stmt->bindParam(':usuario', $dados['usuario'], \PDO::PARAM_STR);
+            
+            return $stmt->execute();
+        } catch (\Exception $e) {
+            Log::error('Erro em inserirEscalaSemanal: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Atualiza uma escala semanal existente
+     * 
+     * @param array $dados
+     * @return bool
+     */
+    public function atualizarEscalaSemanal($dados)
+    {
+        try {
+            $dbh = DB::connection()->getPdo();
+            $sql = "UPDATE sgcr.crsa.T0111_ESCALA_TAREFAS 
+                    SET ProdutoID = :produto, TipoProcesso = :tipoProcesso, DataExecucao = :dataExecucao, 
+                        Responsaveis = :responsaveis, UsuarioAtualizacao = :usuario, DataAtualizacao = GETDATE()
+                    WHERE ID = :id";
+            
+            $stmt = $dbh->prepare($sql);
+            $stmt->bindParam(':produto', $dados['produto'], \PDO::PARAM_STR);
+            $stmt->bindParam(':tipoProcesso', $dados['tipoProcesso'], \PDO::PARAM_STR);
+            $stmt->bindParam(':dataExecucao', $dados['dataExecucao'], \PDO::PARAM_STR);
+            $stmt->bindParam(':responsaveis', $dados['usuarios'], \PDO::PARAM_STR);
+            $stmt->bindParam(':usuario', $dados['usuario'], \PDO::PARAM_STR);
+            $stmt->bindParam(':id', $dados['id'], \PDO::PARAM_INT);
+            
+            return $stmt->execute();
+        } catch (\Exception $e) {
+            Log::error('Erro em atualizarEscalaSemanal: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Exclui uma escala semanal
+     * 
+     * @param int $id
+     * @param string $usuario
+     * @return bool
+     */
+    public function excluirEscalaSemanal($id, $usuario)
+    {
+        try {
+            $dbh = DB::connection()->getPdo();
+            $sql = "DELETE FROM sgcr.crsa.T0111_ESCALA_TAREFAS WHERE ID = :id";
+            $stmt = $dbh->prepare($sql);
+            $stmt->bindParam(':id', $id, \PDO::PARAM_INT);
+            
+            return $stmt->execute();
+        } catch (\Exception $e) {
+            Log::error('Erro em excluirEscalaSemanal: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Duplica a última escala semanal
+     * 
+     * @param string $usuario
+     * @return bool
+     */
+    public function duplicarEscalaSemanal($usuario)
+    {
+        try {
+            $dbh = DB::connection()->getPdo();
+            $sql = "INSERT INTO sgcr.crsa.T0111_ESCALA_TAREFAS 
+                    (Lote, ProdutoID, TipoProcesso, DataInicio, DataFim, TarefaID, DataExecucao, Responsaveis, UsuarioCriacao, DataCriacao)
+                    SELECT TOP 1 Lote, ProdutoID, TipoProcesso, 
+                           DATEADD(week, 1, DataInicio) as DataInicio, 
+                           DATEADD(week, 1, DataFim) as DataFim, 
+                           TarefaID, 
+                           DATEADD(week, 1, DataExecucao) as DataExecucao, 
+                           Responsaveis, :usuario, GETDATE()
+                    FROM sgcr.crsa.T0111_ESCALA_TAREFAS 
+                    ORDER BY DataCriacao DESC";
+            
+            $stmt = $dbh->prepare($sql);
+            $stmt->bindParam(':usuario', $usuario, \PDO::PARAM_STR);
+            
+            return $stmt->execute();
+        } catch (\Exception $e) {
+            Log::error('Erro em duplicarEscalaSemanal: ' . $e->getMessage());
+            return false;
         }
     }
 }

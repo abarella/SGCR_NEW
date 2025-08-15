@@ -59,6 +59,7 @@ class LoginController extends Controller
         }
         $cdusuario = (string) $xml['cdusuario'];
         
+        
 
 
         $resultCompl = GlobalService::dadosUsuario($cdusuario);

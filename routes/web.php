@@ -61,5 +61,23 @@ Route::prefix('dfv-ds')->name('dfv-ds.')->group(function() {
 
 Route::get('/telescope', [\Laravel\Telescope\Http\Controllers\HomeController::class, 'index']);
 
+// Rotas para Escala de Tarefas
+Route::prefix('esc-tr')->name('escalatarefas.')->middleware(['auth'])->group(function() {
+                Route::get('/', [App\Http\Controllers\EscTrController::class, 'index'])->name('index');
+            Route::post('/store', [App\Http\Controllers\EscTrController::class, 'store'])->name('store');
+            Route::post('/update', [App\Http\Controllers\EscTrController::class, 'update'])->name('update');
+            Route::post('/destroy', [App\Http\Controllers\EscTrController::class, 'destroy'])->name('destroy');
+            Route::get('/data', [App\Http\Controllers\EscTrController::class, 'getData'])->name('data');
+});
 
+// Rotas para Escala Semanal
+Route::prefix('esc-ct')->name('esc-ct.')->middleware(['auth'])->group(function() {
+    Route::get('/', [App\Http\Controllers\EscCtController::class, 'index'])->name('index');
+    Route::post('/store', [App\Http\Controllers\EscCtController::class, 'store'])->name('store');
+    Route::post('/update', [App\Http\Controllers\EscCtController::class, 'update'])->name('update');
+    Route::post('/destroy', [App\Http\Controllers\EscCtController::class, 'destroy'])->name('destroy');
+    Route::post('/duplicar', [App\Http\Controllers\EscCtController::class, 'duplicar'])->name('duplicar');
+    Route::post('/usuarios-associados', [App\Http\Controllers\EscCtController::class, 'getUsuariosAssociados'])->name('usuarios-associados');
+    Route::get('/data', [App\Http\Controllers\EscCtController::class, 'getData'])->name('data');
+});
 

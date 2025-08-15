@@ -542,6 +542,22 @@ return [
             'icon' => 'fas fa-star',
         ],
 
+        [
+            'text' => 'Esscala',
+            'icon' => 'fas fa-cogs',
+            'submenu' => [
+                [
+                    'text' => 'Tarefas',
+                    'url' => 'esc-tr',
+                    'icon' => 'fas fa-list-ol',
+                ],
+                [
+                    'text' => 'Cadastro de Tarefas',
+                    'url' => 'esc-ct',
+                    'icon' => 'fas fa-clipboard-check',
+                ],
+            ],
+        ],
     ],
 
     /*
@@ -822,4 +838,15 @@ return [
     */
 
     'livewire' => false,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Language Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Here you can configure the language settings for AdminLTE.
+    |
+    */
+
+    'locale' => 'pt-BR',
 ];

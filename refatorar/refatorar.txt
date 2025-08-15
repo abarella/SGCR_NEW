@@ -1,0 +1,8 @@
+Gostaria de criar neste projeto model, view, controller e services 
+na opção do menu do adminlte  na url "psp-rm" que já existe.
+As tabelas e procedures também já estão criadas no SQL Server
+Baseado nos arquivos da pasta refatorar a seguir:
+1) cr_pst03.asp que usa o cr_pst03.js e cr_pst03_grid.xsl
+2) os aquivos cr_calibracao.asp e cr_calibracao.js fazem parte do modal 
+3) A chamada das procedures estão em SGFPService.php
+

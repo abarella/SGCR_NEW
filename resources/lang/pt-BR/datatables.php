@@ -1,0 +1,35 @@
+<?php
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | DataTables Language Lines
+    |--------------------------------------------------------------------------
+    |
+    | The following language lines are used by DataTables for various
+    | messages that we need to display to the user.
+    |
+    */
+
+    'emptyTable' => 'Nenhum registro encontrado',
+    'info' => 'Mostrando _START_ até _END_ de _TOTAL_ registros',
+    'infoEmpty' => 'Mostrando 0 até 0 de 0 registros',
+    'infoFiltered' => '(filtrado de _MAX_ registros no total)',
+    'lengthMenu' => 'Mostrar _MENU_ registros',
+    'loadingRecords' => 'Carregando...',
+    'processing' => 'Processando...',
+    'search' => 'Pesquisar:',
+    'zeroRecords' => 'Nenhum registro encontrado',
+    'paginate' => [
+        'first' => 'Primeiro',
+        'last' => 'Último',
+        'next' => 'Próximo',
+        'previous' => 'Anterior',
+    ],
+    'aria' => [
+        'sortAscending' => ': ativar para ordenar coluna ascendente',
+        'sortDescending' => ': ativar para ordenar coluna descendente',
+    ],
+
+];
