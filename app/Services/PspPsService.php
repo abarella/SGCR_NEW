@@ -204,7 +204,7 @@ class PspPsService
 
             \Log::info('Atualizando pasta - Tab ativo:', ['active_tab' => $active_tab]);
 
-            if ($active_tab === 'controle') {
+            //if ($active_tab === 'controle') {
                 // Execução apenas para CONTROLE
                 $sql_controle = "SET NOCOUNT ON;
                         DECLARE @resulta_controle INT, @mensa_controle NVARCHAR(255);
@@ -236,9 +236,9 @@ class PspPsService
 
                 $result_controle = $sth_controle->execute();
 
-                return $result_controle;
+                //return $result_controle;
 
-            } else if ($active_tab === 'producao') {
+            //} else if ($active_tab === 'producao') {
                 // Execução apenas para PRODUÇÃO
                 $pst_revisadopor_prod = $dados['pst_revisadopor'] ?? '';
                 $pst_doc_data_prod = $data_producao;
@@ -273,10 +273,10 @@ class PspPsService
 
                 $result_producao = $sth_producao->execute();
 
-                return $result_producao;
-            }
+                //return $result_producao;
+            //}
 
-            return false; // Se nenhum tab válido foi especificado
+            return true; // Se nenhum tab válido foi especificado
 
         } catch (\Exception $e) {
 

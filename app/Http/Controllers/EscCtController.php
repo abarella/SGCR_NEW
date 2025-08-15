@@ -32,7 +32,7 @@ class EscCtController extends Controller
             $tarefas = $this->sgfpService->retornaEscalaTarefasSenanal();
             $usuarios = $this->sgfpService->retornaListaUsuariosCMB();
             $escalas = $this->sgfpService->retornaEscalaSemanal();
-            
+
             return view('esc-ct.index', [
                 'produtos' => $produtos,
                 'tiposProcesso' => $tiposProcesso,
@@ -53,26 +53,46 @@ class EscCtController extends Controller
     public function store(Request $request)
     {
         try {
-            $request->validate([
-                'txtLotes' => 'required|string|max:255',
-                'cmbprod' => 'required|string',
-                'selTipProc' => 'required|string',
-                'txPeriodoINI' => 'required|date',
-                'txPeriodoATE' => 'required|date|after:txPeriodoINI',
-                'selTarefas' => 'required|string',
-                'txDataExecucao' => 'required|date',
-                'txtdisponiveis' => 'required|string',
-                'txtSenha' => 'required|string|max:6'
-            ]);
+            // Log dos dados recebidos para debug
+            Log::info('Dados recebidos no store:', $request->all());
+            
+            // Validação com tratamento de erro mais detalhado
+            try {
+                $validated = $request->validate([
+                    'txtLotes' => 'required|string|max:255',
+                    'cmbprod' => 'required|string',
+                    'selTipProc' => 'required|string',
+                    'txPeriodoINI' => 'required|date',
+                    'txPeriodoATE' => 'required|date|after:txPeriodoINI',
+                    'selTarefas' => 'required|string',
+                    'txDataExecucao' => 'nullable|date',
+                    'txtdisponiveis' => 'required|string',
+                    'txtSenha' => 'required|string|max:6'
+                ]);
+                
+                Log::info('Dados validados com sucesso:', $validated);
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                Log::error('Erro de validação no store:', [
+                    'errors' => $e->errors(),
+                    'dados_recebidos' => $request->all()
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Erro de validação: ' . implode(', ', array_map(function($field, $errors) {
+                        return $field . ': ' . implode(', ', $errors);
+                    }, array_keys($e->errors()), $e->errors()))
+                ], 422);
+            }
 
             // Valida a senha do usuário
             $usuario = auth()->user()->cdusuario;
             $senha = $request->txtSenha;
             $validacao = $this->sgfpService->validaSenha($usuario, $senha);
-            
+
             if ($validacao === "") {
                 $dados = [
-                    'lote' => $request->txtLotes,
+                    'lotes' => $request->txtLotes,
                     'produto' => $request->cmbprod,
                     'tipoProcesso' => $request->selTipProc,
                     'dataInicio' => $request->txPeriodoINI,
@@ -82,9 +102,11 @@ class EscCtController extends Controller
                     'usuarios' => $request->txtdisponiveis,
                     'usuario' => $usuario
                 ];
-                
+
+                Log::info('Dados preparados para inserção:', $dados);
+
                 $resultado = $this->sgfpService->inserirEscalaSemanal($dados);
-                
+
                 if ($resultado) {
                     return response()->json([
                         'success' => true,
@@ -104,10 +126,11 @@ class EscCtController extends Controller
             }
         } catch (\Exception $e) {
             Log::error('Erro ao inserir escala semanal: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
             return response()->json([
                 'success' => false,
-                'message' => 'Erro interno do servidor'
-            ]);
+                'message' => 'Erro interno do servidor: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -117,28 +140,48 @@ class EscCtController extends Controller
     public function update(Request $request)
     {
         try {
-            $request->validate([
-                'nr_ID' => 'required|integer',
-                'txtLotes' => 'required|string|max:255',
-                'cmbprod' => 'required|string',
-                'selTipProc' => 'required|string',
-                'txPeriodoINI' => 'required|date',
-                'txPeriodoATE' => 'required|date|after:txPeriodoINI',
-                'selTarefas' => 'required|string',
-                'txDataExecucao' => 'required|date',
-                'txtdisponiveis' => 'required|string',
-                'txtSenha' => 'required|string|max:6'
-            ]);
+            // Log dos dados recebidos para debug
+            Log::info('Dados recebidos no update:', $request->all());
+            
+            // Validação com tratamento de erro mais detalhado
+            try {
+                $validated = $request->validate([
+                    'nr_ID' => 'required|integer',
+                    'txtLotes' => 'required|string|max:255',
+                    'cmbprod' => 'required|string',
+                    'selTipProc' => 'required|string',
+                    'txPeriodoINI' => 'required|date',
+                    'txPeriodoATE' => 'required|date|after:txPeriodoINI',
+                    'selTarefas' => 'required|string',
+                    'txDataExecucao' => 'nullable|date',
+                    'txtdisponiveis' => 'required|string',
+                    'txtSenha' => 'required|string|max:6'
+                ]);
+                
+                Log::info('Dados validados com sucesso:', $validated);
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                Log::error('Erro de validação no update:', [
+                    'errors' => $e->errors(),
+                    'dados_recebidos' => $request->all()
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Erro de validação: ' . implode(', ', array_map(function($field, $errors) {
+                        return $field . ': ' . implode(', ', $errors);
+                    }, array_keys($e->errors()), $e->errors()))
+                ], 422);
+            }
 
             // Valida a senha do usuário
             $usuario = auth()->user()->cdusuario;
             $senha = $request->txtSenha;
             $validacao = $this->sgfpService->validaSenha($usuario, $senha);
-            
+
             if ($validacao === "") {
                 $dados = [
                     'id' => $request->nr_ID,
-                    'lote' => $request->txtLotes,
+                    'lotes' => $request->txtLotes,
                     'produto' => $request->cmbprod,
                     'tipoProcesso' => $request->selTipProc,
                     'dataInicio' => $request->txPeriodoINI,
@@ -148,9 +191,11 @@ class EscCtController extends Controller
                     'usuarios' => $request->txtdisponiveis,
                     'usuario' => $usuario
                 ];
-                
+
+                Log::info('Dados preparados para atualização:', $dados);
+
                 $resultado = $this->sgfpService->atualizarEscalaSemanal($dados);
-                
+
                 if ($resultado) {
                     return response()->json([
                         'success' => true,
@@ -170,10 +215,11 @@ class EscCtController extends Controller
             }
         } catch (\Exception $e) {
             Log::error('Erro ao atualizar escala semanal: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
             return response()->json([
                 'success' => false,
-                'message' => 'Erro interno do servidor'
-            ]);
+                'message' => 'Erro interno do servidor: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -192,10 +238,10 @@ class EscCtController extends Controller
             $usuario = auth()->user()->cdusuario;
             $senha = $request->txtSenha;
             $validacao = $this->sgfpService->validaSenha($usuario, $senha);
-            
+
             if ($validacao === "") {
                 $resultado = $this->sgfpService->excluirEscalaSemanal($request->nr_ID, $usuario);
-                
+
                 if ($resultado) {
                     return response()->json([
                         'success' => true,
@@ -236,10 +282,10 @@ class EscCtController extends Controller
             $usuario = auth()->user()->cdusuario;
             $senha = $request->txtSenha;
             $validacao = $this->sgfpService->validaSenha($usuario, $senha);
-            
+
             if ($validacao === "") {
                 $resultado = $this->sgfpService->duplicarEscalaSemanal($usuario);
-                
+
                 if ($resultado) {
                     return response()->json([
                         'success' => true,
@@ -278,7 +324,7 @@ class EscCtController extends Controller
             ]);
 
             $usuarios = $this->sgfpService->retornaUsuariosAssocCMB($request->lote, $request->tarefa);
-            
+
             return response()->json([
                 'success' => true,
                 'usuarios' => $usuarios
@@ -293,16 +339,22 @@ class EscCtController extends Controller
     }
 
     /**
-     * Retorna dados da escala semanal para DataTables
+     * Retorna dados da escala semanal para atualização do grid
      */
     public function getData()
     {
         try {
             $escalas = $this->sgfpService->retornaEscalaSemanal();
-            return response()->json(['data' => $escalas]);
+            return response()->json([
+                'success' => true,
+                'data' => $escalas
+            ]);
         } catch (\Exception $e) {
             Log::error('Erro ao buscar dados da escala semanal: ' . $e->getMessage());
-            return response()->json(['data' => []]);
+            return response()->json([
+                'success' => false,
+                'data' => '<tr><td colspan="9">Erro ao carregar dados da escala semanal</td></tr>'
+            ]);
         }
     }
 }

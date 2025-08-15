@@ -18,3 +18,5 @@ yarn-error.log
 /.vscode
 /app/config/ldap.php
 config/ldap.php
+.gitlab-ci.local.yml
+

@@ -32,14 +32,14 @@ class SGFPService
 
     /**
      * Valida senha do usuário
-     * 
+     *
      * @param string $usuario
      * @param string $senha
      * @return string
      */
     public function validaSenha($usuario, $senha)
     {
-    
+
         try {
             $dbh = DB::connection()->getPdo();
             $sql = "exec sgcr.crsa.[P1110_CONFSENHA] @p1110_usuarioid = :p1110_usuarioid, @p1110_senha = :p1110_senha, @resulta = :resulta, @mensa = :mensa";
@@ -54,13 +54,13 @@ class SGFPService
             // Output parameters
             $stmt->bindParam(':resulta', $resulta, \PDO::PARAM_STR|\PDO::PARAM_INPUT_OUTPUT, 4000);
             $stmt->bindParam(':mensa', $mensa, \PDO::PARAM_STR|\PDO::PARAM_INPUT_OUTPUT, 4000);
-            
+
             $stmt->execute();
             $stmt->nextRowset();
-            
+
             return $mensa;
         } catch (\Exception $e) {
-            Log::error('Erro em validaSenha: ' . $e->getMessage());
+            
             return "Erro na validação de senha";
         }
     }
@@ -71,7 +71,7 @@ class SGFPService
 
     /**
      * Monta grid de equipamentos
-     * 
+     *
      * @param int $pstNumero
      * @return string
      */
@@ -81,14 +81,14 @@ class SGFPService
             $dbh = DB::connection()->getPdo();
             $query = "exec sgcr.crsa.P0600_EQPTO_LISTA " . $pstNumero . ",''";
             $stmt = $dbh->query($query);
-            
+
             $prep = "<form action='' target='_top' method='POST' name='form1eqp' id='form1eqp' enctype='multipart/form-data'>";
             $prep .= "<input type='hidden' name='ideqp' id='ideqp' value='' />";
             $prep .= "<input type='hidden' name='ideqpAlt' id='ideqpAlt' value='' />";
             $prep .= "<input type='hidden' name='idcateg' id='idcateg' value='' />";
             $prep .= "<input type='hidden' name='acao' id='acao' value='' />";
             $prep .= "<input type='hidden' name='tpst_numero' id='tpst_numero' value='" . $pstNumero . "' />";
-            
+
             $contador1 = 1;
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $prep .= "<tr>";
@@ -107,17 +107,17 @@ class SGFPService
                 $contador1++;
             }
             $prep .= "</form>";
-            
+
             return $prep;
         } catch (\Exception $e) {
-            Log::error('Erro em montaGridEquipamentos: ' . $e->getMessage());
+            
             return "";
         }
     }
 
     /**
      * Retorna número CR do equipamento
-     * 
+     *
      * @param int $ideqp
      * @param int $eqptoid
      * @param int $contador
@@ -129,10 +129,10 @@ class SGFPService
             $dbh = DB::connection()->getPdo();
             $query = "exec sgcr.crsa.P1500_Equipamento " . $ideqp . ",'1'";
             $stmt = $dbh->query($query);
-            
+
             $prep = "<select onchange='alteraEqp(this.value, " . $contador . ")' id='cmbEquipamento" . $contador . "' name='cmbEquipamento" . $contador . "'>";
             $selected = "";
-            
+
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 if ($row["p1500_EqptoID"] == $eqptoid) {
                     $selected = "selected";
@@ -141,17 +141,16 @@ class SGFPService
                 $selected = "";
             }
             $prep .= "</select>";
-            
+
             return $prep;
         } catch (\Exception $e) {
-            Log::error('Erro em retornaNroCREqpto: ' . $e->getMessage());
             return "";
         }
     }
 
     /**
      * Carrega categorias de equipamentos
-     * 
+     *
      * @param int $pstNumero
      * @return string
      */
@@ -159,36 +158,36 @@ class SGFPService
     {
         try {
             $dbh = DB::connection()->getPdo();
-            
+
             // Primeiro query para gerar lista JSON
             $query = "select p026_CategoriaID, p1500_EqptoID, p1500_NumCR, p1500_dspatrim from sgcr.crsa.T1500_EQUIPAMENTO where p026_CategoriaID is not null ";
             $query .= "and p1500_EqptoID not in (Select p1500_eqptoid From sgcr.crsa.T0600_EQUIPAMENTO where pst_numero = '" . $pstNumero . "')";
             $query .= "order by 1,2 ";
-            
+
             $stmt = $dbh->query($query);
             $prep1 = "[";
-            
+
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $prep1 .= '{"id":"' . $row['p026_CategoriaID'] . '"';
                 $prep1 .= ',"idsel":"' . $row['p1500_EqptoID'] . '"';
                 $prep1 .= ',"descr":"' . $row["p1500_NumCR"] . ' - ';
                 $prep1 .= preg_replace('/[^A-Za-z0-9\- ]/', '', $row["p1500_dspatrim"]) . '"},';
             }
-            
+
             $prep1 = substr($prep1, 0, -1);
             $prep1 .= "]";
-            
+
             // Segundo query para combo
             $query = "exec sgcr.crsa.P0026_EQPTO_CATEGORIA 'A'";
             $stmt = $dbh->query($query);
             $prep = "<select name='eqpCategoria' id='eqpCategoria' class='form-control form-control-sm' onchange='TrocaCategoria(this.value)' style='width:100%' >";
             $prep .= "<option value=0>Selecione</option>";
-            
+
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $prep .= "<option value=" . $row["p026_CategoriaID"] . ">" . $row["p026_Categoria"] . "</option>";
             }
             $prep .= "</select>";
-            
+
             return ['html' => $prep, 'json' => $prep1];
         } catch (\Exception $e) {
             Log::error('Erro em categoriaEquipamentos: ' . $e->getMessage());
@@ -202,7 +201,7 @@ class SGFPService
 
     /**
      * Monta grid de materiais
-     * 
+     *
      * @param int $lote
      * @return string
      */
@@ -210,21 +209,21 @@ class SGFPService
     {
         try {
             $dbh = DB::connection()->getPdo();
-            
+
             if ($lote) {
                 $loteArray = explode(" ", $lote);
                 $query = "set nocount on; exec sgcr.crsa.P0600_MATERIAL_SELlote " . $loteArray[0];
             } else {
                 $query = "select NrEtqFrc, prodetq_produto, LoteCR, convert(varchar(10),ProdVali,103) ProdVali from sgcr.crsa.tetq402_produto a left outer join sgcr.crsa.tetq400_etqfrasco b on(a.prodetq_codigo=b.prodetq_codigo) where 1=1 and prodetq_Ativo = 'S'";
             }
-            
+
             $stmt = $dbh->query($query);
             $prep = "";
-            
+
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $prep .= "<tr>";
                 $prep .= "<td class='text-center'><i class='fas fa-check' style='color: #005af5; height:20px; cursor:pointer'></td>";
-                
+
                 if ($lote) {
                     $prep .= "<td>" . $row["codigo"] . "</td>";
                     $prep .= "<td>" . $row["material"] . "</td>";
@@ -243,10 +242,10 @@ class SGFPService
                     $prep .= "<td>" . $row["LoteCR"] . "</td>";
                     $prep .= "<td>" . $row["ProdVali"] . "</td>";
                 }
-                
+
                 $prep .= "</tr>";
             }
-            
+
             return $prep;
         } catch (\Exception $e) {
             Log::error('Erro em montaGridMateriais: ' . $e->getMessage());
@@ -256,7 +255,7 @@ class SGFPService
 
     /**
      * Carrega marca de materiais
-     * 
+     *
      * @return string
      */
     public function marcaMateriais()
@@ -265,15 +264,15 @@ class SGFPService
             $dbh = DB::connection()->getPdo();
             $query = "exec sgcr.crsa.P0015_MARCA_LISTA '1'";
             $stmt = $dbh->query($query);
-            
+
             $prep = "<select name='matMarca' id='matMarca' class='form-control form-control-sm' style='width:100%' >";
             $prep .= "<option value=0>Selecione</option>";
-            
+
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $prep .= "<option value=" . $row["p015_marcacd"] . ">" . $row["p015_marca"] . "</option>";
             }
             $prep .= "</select>";
-            
+
             return $prep;
         } catch (\Exception $e) {
             Log::error('Erro em marcaMateriais: ' . $e->getMessage());
@@ -283,7 +282,7 @@ class SGFPService
 
     /**
      * Carrega tipos de materiais
-     * 
+     *
      * @return string
      */
     public function materialMateriais()
@@ -292,15 +291,15 @@ class SGFPService
             $dbh = DB::connection()->getPdo();
             $query = "exec sgcr.crsa.P0030_MATERIAL_TIPO '1'";
             $stmt = $dbh->query($query);
-            
+
             $prep = "<select name='matMaterial' id='matMaterial' class='form-control form-control-sm' style='width:100%' >";
             $prep .= "<option value=0>Selecione</option>";
-            
+
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $prep .= "<option value=" . $row["p030_material_tipo_id"] . ">" . $row["p030_material_tipo"] . "</option>";
             }
             $prep .= "</select>";
-            
+
             return $prep;
         } catch (\Exception $e) {
             Log::error('Erro em materialMateriais: ' . $e->getMessage());
@@ -310,7 +309,7 @@ class SGFPService
 
     /**
      * Retorna lista de materiais
-     * 
+     *
      * @param int $pstNumero
      * @return string
      */
@@ -321,9 +320,9 @@ class SGFPService
             $sql = "set nocount on; exec sgcr.crsa.P0600_MATERIAIS_LISTA " . $pstNumero . ",1, ''";
             $stmt = $dbh->prepare($sql);
             $stmt->execute();
-            
+
             $prep = "";
-            
+
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $paramedit = "onclick = fu_edtMaterial('";
                 $paramedit .= trim($row["p600_id"]) . "','";
@@ -360,7 +359,7 @@ class SGFPService
                 $prep .= "<td>" . $row["p047_UnidadeDsc"] . "</td>";
                 $prep .= "</tr>";
             }
-            
+
             return $prep;
         } catch (\Exception $e) {
             Log::error('Erro em retornaMateriais: ' . $e->getMessage());
@@ -374,7 +373,7 @@ class SGFPService
 
     /**
      * Retorna verificação de cela
-     * 
+     *
      * @param int $pstNumero
      * @return string
      */
@@ -384,11 +383,11 @@ class SGFPService
             $dbh = DB::connection()->getPdo();
             $query = "exec sgcr.crsa.P0600_LISTA_CELA " . $pstNumero;
             $stmt = $dbh->query($query);
-            
+
             $prep = "";
             $id1600 = "";
             $categoria = "";
-            
+
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $prep .= "CELA CR: " . $row["p1500_numcr"];
                 $prep .= "<br>";
@@ -402,7 +401,7 @@ class SGFPService
                 $id1600 = $row["p600_checklist_id"];
                 $categoria = $row["p026_categoriaid"];
             }
-            
+
             return [
                 'html' => $prep,
                 'id1600' => $id1600,
@@ -416,7 +415,7 @@ class SGFPService
 
     /**
      * Retorna limpeza de cela
-     * 
+     *
      * @param int $pstNumero
      * @return string
      */
@@ -426,14 +425,14 @@ class SGFPService
             $dbh = DB::connection()->getPdo();
             $query = "exec sgcr.crsa.P0601_Materiais " . $pstNumero;
             $stmt = $dbh->query($query);
-            
+
             $prep = "";
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $prep .= "Responsável: " . $row["p1110_nome"];
                 $prep .= "<br>";
                 $prep .= "Data " . $this->formataDataHora($row["dat_atualizacao"]);
             }
-            
+
             return $prep;
         } catch (\Exception $e) {
             Log::error('Erro em retornaLimpCela: ' . $e->getMessage());
@@ -443,7 +442,7 @@ class SGFPService
 
     /**
      * Retorna fornecedores de diluição
-     * 
+     *
      * @param int $pstNumero
      * @return string
      */
@@ -453,12 +452,12 @@ class SGFPService
             $dbh = DB::connection()->getPdo();
             $query = "select nr_ID,nome_lote from sgcr.crsa.T643_I131_InformRadioisotopo where pst_numero = " . $pstNumero;
             $stmt = $dbh->query($query);
-            
+
             $prep = "";
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $prep .= "<option value='" . $row["nr_ID"] . "'>" . $row["nome_lote"] . "</option>";
             }
-            
+
             return $prep;
         } catch (\Exception $e) {
             Log::error('Erro em retornaFornDilu: ' . $e->getMessage());
@@ -468,7 +467,7 @@ class SGFPService
 
     /**
      * Retorna combo de produtos
-     * 
+     *
      * @return string
      */
     public function retornaCMBProdutos()
@@ -477,15 +476,15 @@ class SGFPService
             $dbh = DB::connection()->getPdo();
             $query = "select prod_codigo, nome_comercial from vendaspelicano.dbo.T0250_PRODUTO where prod_ativo='A' order by nome_comercial";
             $stmt = $dbh->query($query);
-            
+
             $prep = "<select id='cmbprod' name='cmbprod' class='form-control '>";
-            $prep .= "<option value='0'>Selecione</option>";
-            
+            $prep .= "<option value=''>Selecione</option>";
+
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $prep .= "<option value='" . $row["prod_codigo"] . "'>" . $row["nome_comercial"] . "</option>";
             }
             $prep .= "</select>";
-            
+
             return $prep;
         } catch (\Exception $e) {
             Log::error('Erro em retornaCMBProdutos: ' . $e->getMessage());
@@ -495,7 +494,7 @@ class SGFPService
 
     /**
      * Retorna atividades solicitadas
-     * 
+     *
      * @param int $pstNumero
      * @return string
      */
@@ -505,15 +504,15 @@ class SGFPService
             $dbh = DB::connection()->getPdo();
             $query = "set nocount on;exec sgcr.crsa.[P0110_ATIVIDADE_SOLICITADA] " . $pstNumero . ", '', '', '', '', ''";
             $stmt = $dbh->query($query);
-            
+
             $v1 = 0;
             $v2 = 0;
-            
+
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $v1 = $v1 + ($row["p110atv"] * $row["partidas"]);
                 $v2 = $v2 + (($row["p110atv"] * $row["partidas"]) * 37);
             }
-            
+
             return $v1 . "-" . $v2;
         } catch (\Exception $e) {
             Log::error('Erro em retornaAtividadeSolicitadas: ' . $e->getMessage());
@@ -523,7 +522,7 @@ class SGFPService
 
     /**
      * Retorna lista de solicitadas
-     * 
+     *
      * @param int $pstNumero
      * @return string
      */
@@ -533,7 +532,7 @@ class SGFPService
             $dbh = DB::connection()->getPdo();
             $query = "set nocount on;exec sgcr.crsa.[P0110_ATIVIDADE_SOLICITADA] " . $pstNumero . ", '', '', '', '', ''";
             $stmt = $dbh->query($query);
-            
+
             $prep = "";
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $prep .= "<tr>";
@@ -541,7 +540,7 @@ class SGFPService
                 $prep .= "<td>" . $row["partidas"] . "</td>";
                 $prep .= "</tr>";
             }
-            
+
             return $prep;
         } catch (\Exception $e) {
             Log::error('Erro em retornaSolicitadasLista: ' . $e->getMessage());
@@ -551,7 +550,7 @@ class SGFPService
 
     /**
      * Retorna fracionamento cliente
-     * 
+     *
      * @param int $pstNumero
      * @return string
      */
@@ -561,7 +560,7 @@ class SGFPService
             $dbh = DB::connection()->getPdo();
             $query = "exec sgcr.crsa.P0600_FRACIONAMENTO_RD " . $pstNumero . ", '', '', ''";
             $stmt = $dbh->query($query);
-            
+
             $prep = "";
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $prep .= "<tr>";
@@ -575,7 +574,7 @@ class SGFPService
                 $prep .= "<td>" . $row["status"] . "</td>";
                 $prep .= "</tr>";
             }
-            
+
             return $prep;
         } catch (\Exception $e) {
             Log::error('Erro em retornaFracCliente: ' . $e->getMessage());
@@ -585,7 +584,7 @@ class SGFPService
 
     /**
      * Retorna liberação de área
-     * 
+     *
      * @param int $pstNumero
      * @param string $produto
      * @return string
@@ -594,7 +593,7 @@ class SGFPService
     {
         try {
             $dbh = DB::connection()->getPdo();
-            
+
             switch ($produto) {
                 case 'rd_i131':
                 case 'rd_tl':
@@ -606,15 +605,15 @@ class SGFPService
                 default:
                     return "";
             }
-            
+
             $stmt = $dbh->query($query);
             $prep = "";
             $conta = 1;
-            
+
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $chkS = ($row["P643_Flag"] == "S") ? "checked" : "";
                 $chkN = ($row["P643_Flag"] != "S") ? "checked" : "";
-                
+
                 $prep .= "<tr>";
                 $prep .= "<td>" . $row["P643_LibArea"] . "</td>";
                 $prep .= "<td>" . $row["P643_Descricao"] . "</td>";
@@ -628,7 +627,7 @@ class SGFPService
                 $prep .= "</tr>";
                 $conta++;
             }
-            
+
             return $prep;
         } catch (\Exception $e) {
             Log::error('Erro em retornaLiberaArea: ' . $e->getMessage());
@@ -638,7 +637,7 @@ class SGFPService
 
     /**
      * Retorna embalagem primária
-     * 
+     *
      * @param int $pstNumero
      * @param string $produto
      * @return string
@@ -647,7 +646,7 @@ class SGFPService
     {
         try {
             $dbh = DB::connection()->getPdo();
-            
+
             switch ($produto) {
                 case 'rd_i131':
                     $query = "exec sgcr.crsa.P0643_I131_EMBPRIMARIA " . $pstNumero . ", @tiposaida=1";
@@ -661,15 +660,15 @@ class SGFPService
                 default:
                     return "";
             }
-            
+
             $stmt = $dbh->query($query);
             $prep = "";
             $conta = 1;
-            
+
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $chkS = ($row["P643_Flag"] == "S") ? "checked" : "";
                 $chkN = ($row["P643_Flag"] != "S") ? "checked" : "";
-                
+
                 $prep .= "<tr>";
                 $prep .= "<td>" . $row["P643_EmbPrimaria"] . "</td>";
                 $prep .= "<td>" . $row["P643_Descricao"] . "</td>";
@@ -683,7 +682,7 @@ class SGFPService
                 $prep .= "</tr>";
                 $conta++;
             }
-            
+
             return $prep;
         } catch (\Exception $e) {
             Log::error('Erro em retornaEmbalagemPrimaria: ' . $e->getMessage());
@@ -697,7 +696,7 @@ class SGFPService
 
     /**
      * Carrega técnico responsável
-     * 
+     *
      * @param int $tipo
      * @param int $nivel
      * @return string
@@ -713,21 +712,21 @@ class SGFPService
                 case 4: $cmbidname = "cmbLacracao"; break;
                 case 5: $cmbidname = "cmbTecnicoCalc"; break;
             }
-            
+
             if ($nivel) {
                 $cmbidname .= $nivel;
             }
-            
+
             $dbh = DB::connection()->getPdo();
             $query = "exec sgcr.crsa.P1110_USUARIOS ";
             $stmt = $dbh->query($query);
-            
+
             $prep = "<select id='" . $cmbidname . "' name='" . $cmbidname . "' class='form-control form-control-sm'>";
-            
+
             if ($nivel) {
                 $prep .= "<option value='0'>Selecione</option>";
             }
-            
+
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $selected = "";
                 if (!$nivel && $row["p1110_usuarioid"] == session('usuarioID')) {
@@ -736,7 +735,7 @@ class SGFPService
                 $prep .= "<option " . $selected . " value='" . $row["p1110_usuarioid"] . "'>" . $row["p1110_nome"] . "</option>";
             }
             $prep .= "</select>";
-            
+
             return $prep;
         } catch (\Exception $e) {
             Log::error('Erro em carregaTecnicoResponsavel: ' . $e->getMessage());
@@ -746,7 +745,7 @@ class SGFPService
 
     /**
      * Carrega técnico I131
-     * 
+     *
      * @return string
      */
     public function carregaTecnico()
@@ -755,9 +754,9 @@ class SGFPService
             $dbh = DB::connection()->getPdo();
             $query = "exec sgcr.crsa.P1110_USUARIOS_I131 ";
             $stmt = $dbh->query($query);
-            
+
             $prep = "<select id='cmbTecnico' name='cmbTecnico' class='form-control form-control-sm'>";
-            
+
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $selected = "";
                 if ($row["p1110_usuarioid"] == session('usuarioID')) {
@@ -766,7 +765,7 @@ class SGFPService
                 $prep .= "<option " . $selected . " value='" . $row["p1110_usuarioid"] . "'>" . $row["p1110_nome"] . "</option>";
             }
             $prep .= "</select>";
-            
+
             return $prep;
         } catch (\Exception $e) {
             Log::error('Erro em carregaTecnico: ' . $e->getMessage());
@@ -780,7 +779,7 @@ class SGFPService
 
     /**
      * Retorna amostras
-     * 
+     *
      * @param int $pstNumero
      * @return string
      */
@@ -788,22 +787,22 @@ class SGFPService
     {
         try {
             $dbh = DB::connection()->getPdo();
-            
+
             // Primeiro busca o ID da CQ
             $sql0 = "set nocount on; exec sgcr.crsa.P0551_LISTA0 " . $pstNumero . "," . session('usuarioID');
             $stmt0 = $dbh->prepare($sql0);
             $stmt0->execute();
-            
+
             $p551_cq_id = '0';
             while ($row0 = $stmt0->fetch(\PDO::FETCH_ASSOC)) {
                 $p551_cq_id = $row0["p551_cq_id"];
             }
-            
+
             // Agora busca as amostras
             $sql = "set nocount on; exec sgcr.crsa.P0551_LISTA " . $p551_cq_id . ",1," . session('usuarioID');
             $stmt = $dbh->prepare($sql);
             $stmt->execute();
-            
+
             $prep = "";
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $paramedit = "onclick = fu_edtAmostra('";
@@ -813,7 +812,7 @@ class SGFPService
                 $paramedit .= number_format(trim($row["p551_atividade"]), 2) . "','";
                 $paramedit .= number_format(trim($row["p551_volume"]), 2);
                 $paramedit .= "')";
-                
+
                 $prep .= "<tr>";
                 $prep .= "<td>";
                 $prep .= "<button type='button' class='btn btn-sm btn-outline-primary' " . $paramedit . "><i class='fas fa-edit'></i></button>";
@@ -824,7 +823,7 @@ class SGFPService
                 $prep .= "<td>" . number_format($row["p551_volume"], 2, ',', '.') . "</td>";
                 $prep .= "</tr>";
             }
-            
+
             return $prep;
         } catch (\Exception $e) {
             Log::error('Erro em retornaAmostras: ' . $e->getMessage());
@@ -834,7 +833,7 @@ class SGFPService
 
     /**
      * Carrega soluções
-     * 
+     *
      * @param int $pstNumero
      * @return array
      */
@@ -843,24 +842,24 @@ class SGFPService
         try {
             $dbh = DB::connection()->getPdo();
             $sql = "select NrEtqFrc, prodetq_produto, LoteCR, convert(varchar(10),ProdVali,103) ProdVali from sgcr.crsa.tetq402_produto a left outer join sgcr.crsa.tetq400_etqfrasco b on(a.prodetq_codigo=b.prodetq_codigo) inner join sgcr.crsa.T0601_Solucoes c on c.id_solucoes = b.NrEtqFrc where 1=1 and prodetq_Ativo = 'S' and pst_numero = " . $pstNumero;
-            
+
             $stmt = $dbh->prepare($sql);
             $stmt->execute();
-            
+
             $result = [
                 'NrEtqFrc' => '',
                 'prodetq_produto' => '',
                 'loteCR' => '',
                 'validade' => ''
             ];
-            
+
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $result['NrEtqFrc'] = $row["NrEtqFrc"];
                 $result['prodetq_produto'] = $row["prodetq_produto"];
                 $result['loteCR'] = $row["LoteCR"];
                 $result['validade'] = $row["ProdVali"];
             }
-            
+
             return $result;
         } catch (\Exception $e) {
             Log::error('Erro em carregaSolucao: ' . $e->getMessage());
@@ -870,7 +869,7 @@ class SGFPService
 
     /**
      * Carrega amostras
-     * 
+     *
      * @param int $pstNumero
      * @return array
      */
@@ -881,7 +880,7 @@ class SGFPService
             $sql = "set nocount on; exec sgcr.crsa.P0551_LISTA0 " . $pstNumero . "," . session('usuarioID');
             $stmt = $dbh->prepare($sql);
             $stmt->execute();
-            
+
             $result = [
                 'p551_cq_id' => '',
                 'p551_obs' => '',
@@ -890,7 +889,7 @@ class SGFPService
                 'p031_aspectoid' => '',
                 'p612_transferenciaid' => ''
             ];
-            
+
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $result['p551_cq_id'] = $row["p551_cq_id"];
                 $result['p551_obs'] = $row["p551_obs"];
@@ -898,14 +897,14 @@ class SGFPService
                 $result['p551_horaamostragem'] = substr($row["p551_horaamostragem"], 0, 2) . ":" . substr($row["p551_horaamostragem"], 2, 2);
                 $result['p031_aspectoid'] = $row["p031_aspectoid"];
             }
-            
+
             // Busca transferência
             if ($result['p551_cq_id']) {
                 try {
                     $sql1 = "exec sgcr.crsa.R0612_AMOSTRAGEM_LISTA " . $result['p551_cq_id'];
                     $stmt1 = $dbh->prepare($sql1);
                     $stmt1->execute();
-                    
+
                     while ($row1 = $stmt1->fetch(\PDO::FETCH_ASSOC)) {
                         $result['p612_transferenciaid'] = $row1["p612_transferenciaid"];
                     }
@@ -913,7 +912,7 @@ class SGFPService
                     // Ignora erro na busca de transferência
                 }
             }
-            
+
             return $result;
         } catch (\Exception $e) {
             Log::error('Erro em carregaAmostras: ' . $e->getMessage());
@@ -927,7 +926,7 @@ class SGFPService
 
     /**
      * Carrega blindagem por pasta
-     * 
+     *
      * @param string $lote
      * @param string $serie
      * @return array
@@ -938,27 +937,27 @@ class SGFPService
             if ($lote == "") {
                 $lote = "0";
             }
-            
+
             $dbh = DB::connection()->getPdo();
             $sql = "set nocount on;exec vendaspelicano.dbo.BlindagemXPasta " . $lote . ",'" . $serie . "'";
             $stmt = $dbh->prepare($sql);
             $stmt->execute();
-            
+
             $prep = "";
             $conta = 0;
-            
+
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $consist = '';
                 if (trim($row["RgSaida_Castelo"]) != trim($row["RgSaida_Pasta"])) {
                     $consist = 'background-color:red;';
                     $conta++;
                 }
-                
+
                 if (trim($row["RgSaida_Castelo"]) == '' && trim($row["RgSaida_Pasta"]) == '') {
                     $consist = 'background-color:red;';
                     $conta++;
                 }
-                
+
                 $prep .= "<tr style='" . $consist . "'>";
                 $prep .= "<td>" . $row["Pasta_Lote"] . "</td>";
                 $prep .= "<td>" . $row["RgSaida_Castelo"] . "</td>";
@@ -969,7 +968,7 @@ class SGFPService
                 $prep .= "<td>" . $row["Medico_Responsavel"] . "</td>";
                 $prep .= "</tr>";
             }
-            
+
             return [
                 'html' => $prep,
                 'contagem' => $conta
@@ -982,7 +981,7 @@ class SGFPService
 
     /**
      * Carrega acompanhamento
-     * 
+     *
      * @return string
      */
     public function carregaAcompanhamento()
@@ -992,7 +991,7 @@ class SGFPService
             $sql = "select id, lote from sgcr.crsa.TBacomplote where status = 'A'";
             $stmt = $dbh->prepare($sql);
             $stmt->execute();
-            
+
             $prep = "";
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $prep .= "<tr>";
@@ -1000,7 +999,7 @@ class SGFPService
                 $prep .= "<td>" . $row["lote"] . "</td>";
                 $prep .= "</tr>";
             }
-            
+
             return $prep;
         } catch (\Exception $e) {
             Log::error('Erro em carregaAcompanhamento: ' . $e->getMessage());
@@ -1014,7 +1013,7 @@ class SGFPService
 
     /**
      * Executa uma procedure do banco de dados e retorna o resultado como XML
-     * 
+     *
      * @param string $sql
      * @param array $params
      * @return string
@@ -1040,7 +1039,7 @@ class SGFPService
 
     /**
      * Converte resultado XML para array de objetos
-     * 
+     *
      * @param string $xmlResult
      * @return array
      */
@@ -1078,7 +1077,7 @@ class SGFPService
 
     /**
      * Executa uma query simples e retorna o resultado
-     * 
+     *
      * @param string $sql
      * @param array $params
      * @return mixed
@@ -1104,7 +1103,7 @@ class SGFPService
 
     /**
      * Formata data para padrão ISO
-     * 
+     *
      * @param string $strdata
      * @return string
      */
@@ -1123,7 +1122,7 @@ class SGFPService
 
     /**
      * Formata data e hora
-     * 
+     *
      * @param string $strdata
      * @return string
      */
@@ -1142,13 +1141,131 @@ class SGFPService
         }
     }
 
+    /**
+     * Formata data para exibição no padrão brasileiro dd/mm/yyyy
+     *
+     * @param string $strdata
+     * @return string
+     */
+    public function formataDataBrasil($strdata)
+    {
+        try {
+            if (empty($strdata) || $strdata == '0000-00-00' || $strdata == '0000-00-00 00:00:00') {
+                return '';
+            }
+
+            // Se for datetime (YYYY-MM-DD HH:MM:SS)
+            if (strpos($strdata, ' ') !== false) {
+                $partes = explode(' ', $strdata);
+                $data = $partes[0];
+                $hora = $partes[1];
+
+                $partesData = explode('-', $data);
+                if (count($partesData) == 3) {
+                    return $partesData[2] . '/' . $partesData[1] . '/' . $partesData[0] . ' ' . $hora;
+                }
+            } else {
+                // Se for apenas data (YYYY-MM-DD)
+                $partesData = explode('-', $strdata);
+                if (count($partesData) == 3) {
+                    return $partesData[2] . '/' . $partesData[1] . '/' . $partesData[0];
+                }
+            }
+
+            return $strdata;
+        } catch (\Exception $e) {
+            Log::error('Erro ao formatar data Brasil: ' . $e->getMessage());
+            return $strdata;
+        }
+    }
+
+    /**
+     * Formata data para padrão brasileiro sem quebrar parâmetros JavaScript
+     *
+     * @param string $strdata
+     * @return string
+     */
+    public function formataDataParaJS($strdata)
+    {
+        try {
+            if (empty($strdata) || $strdata == '0000-00-00' || $strdata == '0000-00-00 00:00:00') {
+                return '';
+            }
+
+            // Tratar datetime (YYYY-MM-DD HH:MM:SS.mmm)
+            if (strpos($strdata, ' ') !== false) {
+                $partes = explode(' ', $strdata);
+                $data = $partes[0];
+                $tempo = $partes[1];
+
+                // Remover milissegundos se existir
+                if (strpos($tempo, '.') !== false) {
+                    $tempo = explode('.', $tempo)[0];
+                }
+
+                $partesData = explode('-', $data);
+                if (count($partesData) == 3) {
+                    $ano = $partesData[0];
+                    $mes = $partesData[1];
+                    $dia = $partesData[2];
+
+                                    // Para datetime completo, retornar apenas a data no formato brasileiro
+                return $dia . '/' . $mes . '/' . $ano;
+                }
+            } else {
+                // Para apenas data (YYYY-MM-DD)
+                $partesData = explode('-', $strdata);
+                if (count($partesData) == 3) {
+                    $ano = $partesData[0];
+                    $mes = $partesData[1];
+                    $dia = $partesData[2];
+
+                    return $dia . '/' . $mes . '/' . $ano;
+                }
+            }
+
+            return $strdata;
+        } catch (\Exception $e) {
+            Log::error('Erro ao formatar data para JS: ' . $e->getMessage());
+            return $strdata;
+        }
+    }
+
+    /**
+     * Extrai apenas a parte da data (YYYY-MM-DD) de um datetime
+     * Para ser usado em campos HTML5 do tipo 'date'
+     *
+     * @param string $strdata
+     * @return string
+     */
+    public function extrairApenasData($strdata)
+    {
+        try {
+            if (empty($strdata) || $strdata == '0000-00-00' || $strdata == '0000-00-00 00:00:00') {
+                return '';
+            }
+
+            // Se tem espaço, é datetime (YYYY-MM-DD HH:MM:SS)
+            if (strpos($strdata, ' ') !== false) {
+                $partes = explode(' ', $strdata);
+                return $partes[0]; // Retorna apenas YYYY-MM-DD
+            }
+
+            // Se não tem espaço, já é apenas data
+            return $strdata;
+        } catch (\Exception $e) {
+            Log::error('Erro ao extrair apenas data: ' . $e->getMessage());
+            return $strdata;
+        }
+    }
+
     // ===================================
     // OPERAÇÕES DE CÁLCULO E DILUIÇÃO
     // ===================================
 
     /**
      * Calcula diluições
-     * 
+     *
      * @param int $pstNumero
      * @param string $produto
      * @param int $partIni
@@ -1161,25 +1278,25 @@ class SGFPService
         try {
             $produto = $this->converterProduto($produto);
             $loteNum = substr($lote, 0, 3);
-            
+
             if ($partIni == '') $partIni = 0;
             if ($partFim == '') $partFim = 0;
-            
+
             $dbh = DB::connection()->getPdo();
             $query = "exec sgcr.crsa.P0110_PEDIDOS_CONTA " . $pstNumero . "," . $partIni . "," . $partFim;
             $stmt = $dbh->query($query);
-            
+
             $regs = 0;
             $parts = 0;
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $regs = $row["nro_regs"];
                 $parts = $row["p110atv"];
             }
-            
+
             // Busca lotes atendidos
             $query = "select sgcr.crsa.fn_LotesAtendidos('" . $produto . "'," . $partIni . ", " . $partFim . ", " . $loteNum . ")";
             $stmt = $dbh->query($query);
-            
+
             $lotes_atendidos = "";
             try {
                 while ($row = $stmt->fetchAll(\PDO::FETCH_ASSOC)) {
@@ -1189,19 +1306,19 @@ class SGFPService
             } catch (\Exception $e) {
                 // Ignora erro
             }
-            
+
             // Calcula partidas menores
             $partIniMenor = $partIni - 1;
             $query = "exec sgcr.crsa.P0110_PEDIDOS_CONTA " . $pstNumero . ",0," . $partIniMenor;
             $stmt = $dbh->query($query);
-            
+
             $regsMenor = 0;
             $partsMenor = 0;
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $regsMenor = $row["nro_regs"];
                 $partsMenor = $row["p110atv"];
             }
-            
+
             return [
                 'partidas' => $regs,
                 'totatv' => $parts,
@@ -1223,7 +1340,7 @@ class SGFPService
 
     /**
      * Converte código do produto
-     * 
+     *
      * @param string $produto
      * @return string
      */
@@ -1249,7 +1366,7 @@ class SGFPService
 
     /**
      * Grava limpeza de cela com responsáveis
-     * 
+     *
      * @param array $dados
      * @return bool
      */
@@ -1258,7 +1375,7 @@ class SGFPService
         try {
             $dbh = DB::connection()->getPdo();
             $stmt = $dbh->prepare("exec sgcr.crsa.P0706_LIMPEZA_RESPONSA :p1, :p2, :p3, :p4, :p5, :p6, :p7");
-            
+
             $stmt->bindParam(':p1', $dados['id_limpeza'], \PDO::PARAM_STR);
             $stmt->bindParam(':p2', $dados['check'], \PDO::PARAM_STR);
             $stmt->bindParam(':p3', $dados['usuario'], \PDO::PARAM_STR);
@@ -1266,7 +1383,7 @@ class SGFPService
             $stmt->bindParam(':p5', $dados['senha'], \PDO::PARAM_STR);
             $stmt->bindParam(':p6', '', \PDO::PARAM_STR);
             $stmt->bindParam(':p7', '', \PDO::PARAM_STR);
-            
+
             return $stmt->execute();
         } catch (\Exception $e) {
             Log::error('Erro em gravarLimpezaCelaResponsaveis: ' . $e->getMessage());
@@ -1276,7 +1393,7 @@ class SGFPService
 
     /**
      * Grava soluções
-     * 
+     *
      * @param array $dados
      * @return bool
      */
@@ -1284,11 +1401,11 @@ class SGFPService
     {
         try {
             $solucoes = substr($dados['solucoes'], 0, -1); // Remove último caractere
-            
+
             $dbh = DB::connection()->getPdo();
             $query = "exec sgcr.crsa.P0601_Solucoes " . $dados['id_limpeza'] . "," . $dados['pasta'] . "," . $dados['lote'] . ",'" . $solucoes . "','" . $dados['usuario'] . "'";
             $stmt = $dbh->prepare($query);
-            
+
             return $stmt->execute();
         } catch (\Exception $e) {
             Log::error('Erro em gravarSolucoes: ' . $e->getMessage());
@@ -1298,7 +1415,7 @@ class SGFPService
 
     /**
      * Grava operadores
-     * 
+     *
      * @param array $dados
      * @return bool
      */
@@ -1307,7 +1424,7 @@ class SGFPService
         try {
             $dbh = DB::connection()->getPdo();
             $stmt = $dbh->prepare("exec sgcr.crsa.P0095_Operadores :p01, :p02, :p03, :p04, :p05, :p06, :p07, :p08, :p09, :p10, :p11, :p12, :p13, :p14, :p15");
-            
+
             $stmt->bindParam(':p01', $dados["pstnro"], \PDO::PARAM_STR);
             $stmt->bindParam(':p02', $dados["cmbCalculo1"], \PDO::PARAM_STR);
             $stmt->bindParam(':p03', $dados["cmbCalculo2"], \PDO::PARAM_STR);
@@ -1323,7 +1440,7 @@ class SGFPService
             $stmt->bindParam(':p13', $dados["cmbLacracao3"], \PDO::PARAM_STR);
             $stmt->bindParam(':p14', $dados["cmbTecnico"], \PDO::PARAM_STR);
             $stmt->bindParam(':p15', "1", \PDO::PARAM_STR);
-            
+
             return $stmt->execute();
         } catch (\Exception $e) {
             Log::error('Erro em gravarOperadores: ' . $e->getMessage());
@@ -1333,7 +1450,7 @@ class SGFPService
 
     /**
      * Inclui acompanhamento
-     * 
+     *
      * @param string $lote
      * @return bool
      */
@@ -1344,7 +1461,7 @@ class SGFPService
             $sql = "INSERT INTO sgcr.crsa.TBacomplote ([lote], [created_at], [status]) VALUES (:lote, GETDATE(), 'A')";
             $stmt = $dbh->prepare($sql);
             $stmt->bindParam(':lote', $lote);
-            
+
             return $stmt->execute();
         } catch (\Exception $e) {
             Log::error('Erro em incluirAcompanhamento: ' . $e->getMessage());
@@ -1354,7 +1471,7 @@ class SGFPService
 
     /**
      * Exclui acompanhamento
-     * 
+     *
      * @param string $lote
      * @return bool
      */
@@ -1364,7 +1481,7 @@ class SGFPService
             $dbh = DB::connection()->getPdo();
             $sql = "DELETE sgcr.crsa.TBacomplote where lote = '" . $lote . "'";
             $stmt = $dbh->prepare($sql);
-            
+
             return $stmt->execute();
         } catch (\Exception $e) {
             Log::error('Erro em excluirAcompanhamento: ' . $e->getMessage());
@@ -1374,7 +1491,7 @@ class SGFPService
 
     /**
      * Verifica se lote existe
-     * 
+     *
      * @param string $lote
      * @return array
      */
@@ -1385,7 +1502,7 @@ class SGFPService
             $stmt = $dbh->prepare("exec sgcr.crsa.P0110_LOTE_NUMERO :param1");
             $stmt->bindParam(':param1', $lote, \PDO::PARAM_STR);
             $stmt->execute();
-            
+
             $result = [
                 'atividade' => '0',
                 'data_producao' => '',
@@ -1394,27 +1511,27 @@ class SGFPService
                 'volume' => '0',
                 'atividade_especifica' => '0'
             ];
-            
+
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 if ($row['p110situ'] == 1) {
                     $result['atividade'] = '0';
                 } else {
                     $result['atividade'] = number_format($row['p110atv'], 0);
-                    
+
                     // Formatar data de produção
                     $dataProd = $row['p110dtpx'];
                     $result['data_producao'] = substr($dataProd, 6, 4) . '-' . substr($dataProd, 3, 2) . '-' . substr($dataProd, 0, 2) . substr($dataProd, 10, 6);
-                    
+
                     // Formatar data de validade
                     $dataVal = $row['p110dtvl'];
                     $result['data_validade'] = substr($dataVal, 6, 4) . '-' . substr($dataVal, 3, 2) . '-' . substr($dataVal, 0, 2) . substr($dataVal, 10, 6);
-                    
+
                     $result['concentracao'] = number_format($row['p110cr'], 2);
                     $result['volume'] = number_format($row['p110volu'], 2);
                     $result['atividade_especifica'] = number_format($row['p110espe'], 2);
                 }
             }
-            
+
             return $result;
         } catch (\Exception $e) {
             Log::error('Erro em verificarLoteExiste: ' . $e->getMessage());
@@ -1435,7 +1552,7 @@ class SGFPService
 
     /**
      * Retorna lista de tarefas da escala
-     * 
+     *
      * @return array
      */
     public function retornaEscalaTarefas()
@@ -1444,7 +1561,7 @@ class SGFPService
             $dbh = DB::connection()->getPdo();
             $sql = "SELECT ID, Nome, cdUsuario, datatualizacao FROM sgcr.crsa.T0111_ESCALA_TAREFAS ORDER BY ID DESC";
             $stmt = $dbh->query($sql);
-            
+
             return $stmt->fetchAll(\PDO::FETCH_OBJ);
         } catch (\Exception $e) {
             Log::error('Erro em retornaEscalaTarefas: ' . $e->getMessage());
@@ -1454,7 +1571,7 @@ class SGFPService
 
     /**
      * Retorna lista de tarefas da escala em formato JSON para DataTables
-     * 
+     *
      * @return array
      */
     public function retornaEscalaTarefasJson()
@@ -1463,7 +1580,7 @@ class SGFPService
             $dbh = DB::connection()->getPdo();
             $sql = "SELECT ID, Nome, cdUsuario, datatualizacao FROM sgcr.crsa.T0111_ESCALA_TAREFAS ORDER BY ID DESC";
             $stmt = $dbh->query($sql);
-            
+
             $tarefas = [];
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $tarefas[] = [
@@ -1473,7 +1590,7 @@ class SGFPService
                     'cdUsuario' => $row['cdUsuario']
                 ];
             }
-            
+
             return $tarefas;
         } catch (\Exception $e) {
             Log::error('Erro em retornaEscalaTarefasJson: ' . $e->getMessage());
@@ -1483,7 +1600,7 @@ class SGFPService
 
     /**
      * Insere uma nova tarefa na escala
-     * 
+     *
      * @param string $nomeTarefa
      * @param string $usuario
      * @return bool
@@ -1496,7 +1613,7 @@ class SGFPService
             $stmt = $dbh->prepare($sql);
             $stmt->bindParam(':nome', $nomeTarefa, \PDO::PARAM_STR);
             $stmt->bindParam(':usuario', $usuario, \PDO::PARAM_STR);
-            
+
             return $stmt->execute();
         } catch (\Exception $e) {
             Log::error('Erro em inserirEscalaTarefa: ' . $e->getMessage());
@@ -1506,7 +1623,7 @@ class SGFPService
 
     /**
      * Atualiza uma tarefa existente na escala
-     * 
+     *
      * @param int $id
      * @param string $nomeTarefa
      * @param string $usuario
@@ -1521,7 +1638,7 @@ class SGFPService
             $stmt->bindParam(':nome', $nomeTarefa, \PDO::PARAM_STR);
             $stmt->bindParam(':usuario', $usuario, \PDO::PARAM_STR);
             $stmt->bindParam(':id', $id, \PDO::PARAM_INT);
-            
+
             return $stmt->execute();
         } catch (\Exception $e) {
             Log::error('Erro em atualizarEscalaTarefa: ' . $e->getMessage());
@@ -1531,7 +1648,7 @@ class SGFPService
 
     /**
      * Exclui uma tarefa da escala
-     * 
+     *
      * @param int $id
      * @param string $usuario
      * @return bool
@@ -1543,7 +1660,7 @@ class SGFPService
             $sql = "DELETE FROM sgcr.crsa.T0111_ESCALA_TAREFAS WHERE ID = :id";
             $stmt = $dbh->prepare($sql);
             $stmt->bindParam(':id', $id, \PDO::PARAM_INT);
-            
+
             return $stmt->execute();
         } catch (\Exception $e) {
             Log::error('Erro em excluirEscalaTarefa: ' . $e->getMessage());
@@ -1557,21 +1674,21 @@ class SGFPService
 
     /**
      * Retorna tipos de processo para escala semanal
-     * 
+     *
      * @return string
      */
     public function retornaEscalaTipoProcesso()
     {
         try {
             $dbh = DB::connection()->getPdo();
-            $sql = "SELECT DISTINCT nome FROM sgcr.crsa.T0111_ESCALA_TAREFAS WHERE nome IS NOT NULL ORDER BY nome";
+            $sql = "select id,nome from  [sgcr].[crsa].[T0111_ESCALA_TIPOPROCESSO]";
             $stmt = $dbh->query($sql);
-            
+
             $html = '<option value="">Selecione...</option>';
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-                $html .= '<option value="' . $row['nome'] . '">' . $row['nome'] . '</option>';
+                $html .= '<option value="' . $row['id'] . '">' . $row['nome'] . '</option>';
             }
-            
+
             return $html;
         } catch (\Exception $e) {
             Log::error('Erro em retornaEscalaTipoProcesso: ' . $e->getMessage());
@@ -1581,7 +1698,7 @@ class SGFPService
 
     /**
      * Retorna tarefas para escala semanal
-     * 
+     *
      * @return string
      */
     public function retornaEscalaTarefasSenanal()
@@ -1590,12 +1707,12 @@ class SGFPService
             $dbh = DB::connection()->getPdo();
             $sql = "SELECT ID, Nome FROM sgcr.crsa.T0111_ESCALA_TAREFAS ORDER BY Nome";
             $stmt = $dbh->query($sql);
-            
+
             $html = '<option value="">Selecione...</option>';
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $html .= '<option value="' . $row['ID'] . '">' . $row['Nome'] . '</option>';
             }
-            
+
             return $html;
         } catch (\Exception $e) {
             Log::error('Erro em retornaEscalaTarefasSenanal: ' . $e->getMessage());
@@ -1605,7 +1722,7 @@ class SGFPService
 
     /**
      * Retorna lista de usuários para combobox
-     * 
+     *
      * @return string
      */
     public function retornaListaUsuariosCMB()
@@ -1614,12 +1731,12 @@ class SGFPService
             $dbh = DB::connection()->getPdo();
             $sql = "SELECT p1110_usuarioid, p1110_nome FROM sgcr.crsa.T1110_USUARIOS WHERE p1110_Ativo = 'A' and p1110_nome <> '' ORDER BY p1110_nome";
             $stmt = $dbh->query($sql);
-            
+
             $html = '';
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $html .= '<option value="' . $row['p1110_usuarioid'] . '">' . $row['p1110_nome'] . '</option>';
             }
-            
+
             return $html;
         } catch (\Exception $e) {
             Log::error('Erro em retornaListaUsuariosCMB: ' . $e->getMessage());
@@ -1629,7 +1746,7 @@ class SGFPService
 
     /**
      * Retorna usuários associados para um lote e tarefa específicos
-     * 
+     *
      * @param string $lote
      * @param string $tarefa
      * @return string
@@ -1637,181 +1754,648 @@ class SGFPService
     public function retornaUsuariosAssocCMB($lote, $tarefa)
     {
         try {
+            Log::info("=== INÍCIO retornaUsuariosAssocCMB ===");
+            Log::info("Parâmetros recebidos - Lote: {$lote}, Tarefa: {$tarefa}");
+
             $dbh = DB::connection()->getPdo();
+            /*
             $sql = "SELECT DISTINCT u.cdUsuario, u.Nome, 'dispon' as tipo
                     FROM sgcr.crsa.Usuarios u
-                    WHERE u.Ativo = 1 
+                    WHERE u.Ativo = 1
                     AND u.cdUsuario NOT IN (
-                        SELECT DISTINCT Responsavel 
-                        FROM sgcr.crsa.T0111_ESCALA_TAREFAS 
+                        SELECT DISTINCT Responsavel
+                        FROM sgcr.crsa.T0111_ESCALA_TAREFAS
                         WHERE Lote = :lote AND TarefaID = :tarefa
                     )
                     UNION ALL
                     SELECT DISTINCT u.cdUsuario, u.Nome, 'assoc' as tipo
                     FROM sgcr.crsa.Usuarios u
                     INNER JOIN sgcr.crsa.T0111_ESCALA_TAREFAS e ON u.cdUsuario = e.Responsavel
-                    WHERE u.Ativo = 1 
+                    WHERE u.Ativo = 1
                     AND e.Lote = :lote2 AND e.TarefaID = :tarefa2
                     ORDER BY tipo, Nome";
-            
+            */
+            $sql = "exec sgcr.crsa.uspPEscalaUsuarios @lote = :lote, @tarefa = :tarefa";
+
+            Log::info("SQL a ser executado: {$sql}");
+
             $stmt = $dbh->prepare($sql);
             $stmt->bindParam(':lote', $lote, \PDO::PARAM_STR);
             $stmt->bindParam(':tarefa', $tarefa, \PDO::PARAM_STR);
-            $stmt->bindParam(':lote2', $lote, \PDO::PARAM_STR);
-            $stmt->bindParam(':tarefa2', $tarefa, \PDO::PARAM_STR);
+            //$stmt->bindParam(':lote2', $lote, \PDO::PARAM_STR);
+            //$stmt->bindParam(':tarefa2', $tarefa, \PDO::PARAM_STR);
+
+            Log::info("Executando stored procedure...");
             $stmt->execute();
-            
+
             $resultado = '';
+            $count = 0;
+            $registros = [];
+
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-                $resultado .= $row['tipo'] . ',' . $row['cdUsuario'] . ',' . $row['Nome'] . ',';
+                $count++;
+                $registros[] = $row;
+
+                // Debug: mostrar todas as chaves disponíveis no primeiro registro
+                if ($count === 1) {
+                    Log::info("Chaves disponíveis no resultado: " . implode(', ', array_keys($row)));
+                    Log::info("Primeiro registro completo: " . json_encode($row));
+                }
+
+                Log::info("Registro {$count}: " . json_encode($row));
+
+                // Tentar diferentes possibilidades de nomes de colunas
+                $tipo = '';
+                $usuarioId = '';
+                $nomeUsuario = '';
+
+                // Possíveis nomes para o campo tipo
+                if (isset($row['param'])) {
+                    $tipo = $row['param'];
+                } elseif (isset($row['PARAM'])) {
+                    $tipo = $row['PARAM'];
+                } elseif (isset($row['tipo'])) {
+                    $tipo = $row['tipo'];
+                } elseif (isset($row['TIPO'])) {
+                    $tipo = $row['TIPO'];
+                } elseif (isset($row[0])) {
+                    $tipo = $row[0]; // Primeira coluna
+                }
+
+                // Possíveis nomes para o campo usuário ID
+                if (isset($row['p1110_usuarioid'])) {
+                    $usuarioId = $row['p1110_usuarioid'];
+                } elseif (isset($row['P1110_USUARIOID'])) {
+                    $usuarioId = $row['P1110_USUARIOID'];
+                } elseif (isset($row[1])) {
+                    $usuarioId = $row[1]; // Segunda coluna
+                }
+
+                // Possíveis nomes para o campo nome
+                if (isset($row['p1110_nome'])) {
+                    $nomeUsuario = $row['p1110_nome'];
+                } elseif (isset($row['P1110_NOME'])) {
+                    $nomeUsuario = $row['P1110_NOME'];
+                } elseif (isset($row[2])) {
+                    $nomeUsuario = $row[2]; // Terceira coluna
+                }
+
+                Log::info("Valores extraídos - Tipo: '{$tipo}', ID: '{$usuarioId}', Nome: '{$nomeUsuario}'");
+
+                $resultado .= $tipo . ',' . $usuarioId . ',' . $nomeUsuario . ',';
             }
-            
-            return rtrim($resultado, ',');
+
+            $resultado = rtrim($resultado, ',');
+
+            Log::info("Total de registros encontrados: {$count}");
+            Log::info("String final montada: '{$resultado}'");
+            Log::info("Tamanho da string: " . strlen($resultado));
+            Log::info("=== FIM retornaUsuariosAssocCMB ===");
+
+            return $resultado;
         } catch (\Exception $e) {
             Log::error('Erro em retornaUsuariosAssocCMB: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
             return '';
         }
     }
 
     /**
+     * Descobre o schema correto da tabela T0111_ESCALA_SEMANAL
+     *
+     * @return string
+     */
+    private function getEscalaSemanalSchema()
+    {
+        try {
+            // Tentar diferentes abordagens para encontrar a tabela
+            
+            // Abordagem 1: Verificar se a tabela existe diretamente
+            try {
+                DB::select("SELECT TOP 1 * FROM sgcr.crsa.T0111_ESCALA_SEMANAL");
+                Log::info('Tabela encontrada em sgcr.crsa.T0111_ESCALA_SEMANAL');
+                return 'sgcr.crsa';
+            } catch (\Exception $e) {
+                Log::info('Tabela não encontrada em sgcr.crsa: ' . $e->getMessage());
+            }
+            
+            // Abordagem 2: Verificar se a tabela existe sem schema
+            try {
+                DB::select("SELECT TOP 1 * FROM T0111_ESCALA_SEMANAL");
+                Log::info('Tabela encontrada em T0111_ESCALA_SEMANAL (sem schema)');
+                return '';
+            } catch (\Exception $e) {
+                Log::info('Tabela não encontrada sem schema: ' . $e->getMessage());
+            }
+            
+            // Abordagem 3: Verificar se a tabela existe em dbo
+            try {
+                DB::select("SELECT TOP 1 * FROM dbo.T0111_ESCALA_SEMANAL");
+                Log::info('Tabela encontrada em dbo.T0111_ESCALA_SEMANAL');
+                return 'dbo';
+            } catch (\Exception $e) {
+                Log::info('Tabela não encontrada em dbo: ' . $e->getMessage());
+            }
+            
+            // Abordagem 4: Verificar se a tabela existe em sgcr.dbo
+            try {
+                DB::select("SELECT TOP 1 * FROM sgcr.dbo.T0111_ESCALA_SEMANAL");
+                Log::info('Tabela encontrada em sgcr.dbo.T0111_ESCALA_SEMANAL');
+                return 'sgcr.dbo';
+            } catch (\Exception $e) {
+                Log::info('Tabela não encontrada em sgcr.dbo: ' . $e->getMessage());
+            }
+            
+            // Abordagem 5: Usar INFORMATION_SCHEMA com tratamento de erro
+            try {
+                $tablesCrsa = DB::select("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'crsa' AND TABLE_NAME = 'T0111_ESCALA_SEMANAL'");
+                if (count($tablesCrsa) > 0) {
+                    Log::info('Tabela encontrada via INFORMATION_SCHEMA em crsa');
+                    return 'crsa';
+                }
+                
+                $tablesDbo = DB::select("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'T0111_ESCALA_SEMANAL'");
+                if (count($tablesDbo) > 0) {
+                    Log::info('Tabela encontrada via INFORMATION_SCHEMA em dbo');
+                    return 'dbo';
+                }
+                
+                // Verificar em todos os schemas
+                $tablesAll = DB::select("SELECT TABLE_SCHEMA FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'T0111_ESCALA_SEMANAL'");
+                if (count($tablesAll) > 0) {
+                    $schema = $tablesAll[0]->TABLE_SCHEMA;
+                    Log::info("Tabela encontrada via INFORMATION_SCHEMA em {$schema}");
+                    return $schema;
+                }
+            } catch (\Exception $e) {
+                Log::warning('Erro ao usar INFORMATION_SCHEMA: ' . $e->getMessage());
+            }
+            
+            // Se chegou até aqui, tentar criar a tabela
+            Log::warning('Tabela não encontrada em nenhum local conhecido, tentando criar em sgcr.crsa');
+            return 'sgcr.crsa';
+            
+        } catch (\Exception $e) {
+            Log::error('Erro ao descobrir schema da tabela: ' . $e->getMessage());
+            return 'sgcr.crsa';
+        }
+    }
+
+    /**
      * Retorna escala semanal
-     * 
+     *
      * @return string
      */
     public function retornaEscalaSemanal()
     {
         try {
             $dbh = DB::connection()->getPdo();
-            $sql = "SELECT e.ID, e.Lote, p.Nome as Produto, e.TipoProcesso, 
-                           e.DataInicio, e.DataFim, e.DataExecucao, t.Nome as Tarefa,
-                           e.Responsaveis
-                    FROM sgcr.crsa.T0111_ESCALA_TAREFAS e
-                    LEFT JOIN sgcr.crsa.Produtos p ON e.ProdutoID = p.ID
-                    LEFT JOIN sgcr.crsa.T0111_ESCALA_TAREFAS t ON e.TarefaID = t.ID
-                    ORDER BY e.DataInicio DESC, e.Lote";
-            $stmt = $dbh->query($sql);
+            $schema = $this->getEscalaSemanalSchema();
+
+            // Construir o nome completo da tabela
+            $tableName = $schema ? "{$schema}.T0111_ESCALA_SEMANAL" : "T0111_ESCALA_SEMANAL";
             
+            Log::info("Usando tabela: {$tableName}");
+
+            // Consulta SQL simplificada para evitar problemas de JOIN
+            $sql = "SELECT
+                        es.id,
+                        es.lotes as Lote,
+                        es.produto as ProdutoCodigo,
+                        es.produto as Produto,
+                        CASE
+                            WHEN es.id_tipoprocesso = 1 THEN 'PRODUÇÃO'
+                            WHEN es.id_tipoprocesso = 2 THEN 'ANALISE'
+                            WHEN es.id_tipoprocesso = 3 THEN 'MEDIAFIL'
+                            ELSE 'INDEFINIDO'
+                        END as TipoProcesso,
+                        es.dat_inicial as DataInicio,
+                        es.dat_final as DataFim,
+                        es.dat_exec as DataExecucao,
+                        es.id_tarefa as TarefaCodigo,
+                        es.id_tarefa as Tarefa,
+                        es.nom_responsaveis as Responsaveis,
+                        es.id_tipoprocesso
+                    FROM {$tableName} es
+                    ORDER BY es.dat_inicial DESC, es.lotes";
+
+            Log::info('retornaEscalaSemanal SQL: ' . $sql);
+
+            $stmt = $dbh->query($sql);
+
             $html = '';
             $contador = 1;
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+                Log::info('retornaEscalaSemanal Row: ' . json_encode($row));
+
+                // Formatar datas para exibição
+                $dataInicioFormatada = $this->formataDataParaJS($row['DataInicio']);
+                $dataFimFormatada = $this->formataDataParaJS($row['DataFim']);
+                // Data de execução também formatada para mostrar apenas a data
+                $dataExecFormatada = $this->formataDataParaJS($row['DataExecucao']);
+
+                Log::info('Datas formatadas:', [
+                    'DataInicio_raw' => $row['DataInicio'],
+                    'DataInicio_formatada' => $dataInicioFormatada,
+                    'DataFim_raw' => $row['DataFim'],
+                    'DataFim_formatada' => $dataFimFormatada,
+                    'DataExecucao_raw' => $row['DataExecucao'],
+                    'DataExecucao_formatada' => $dataExecFormatada
+                ]);
+
                 $html .= '<tr>';
                 $html .= '<td>';
-                $html .= '<button type="button" class="btn btn-sm btn-outline-primary" onclick="fuEditaEscala(' . 
-                         $row['ID'] . ',\'' . $row['Lote'] . '\',\'' . $row['Tarefa'] . '\',\'' . 
-                         $row['Produto'] . '\',\'' . $this->formataDataISO($row['DataInicio']) . '\',\'' . 
-                         $this->formataDataISO($row['DataFim']) . '\',\'\',\'' . 
-                         $this->formataDataHora($row['DataExecucao']) . '\',\'' . $row['TipoProcesso'] . '\')">';
+                // Passar dados RAW do banco para o JavaScript para conversão correta
+                // Para campos de data, extrair apenas a parte da data (sem tempo)
+                $dataInicioParaJS = $this->extrairApenasData($row['DataInicio']);
+                $dataFimParaJS = $this->extrairApenasData($row['DataFim']);
+                $dataExecParaJS = $this->extrairApenasData($row['DataExecucao']);
+                
+                $html .= '<button type="button" class="btn btn-sm btn-outline-primary" onclick="fuEditaEscala(' .
+                         $row['id'] . ',\'' . str_replace("'", "\\\'", $row['Lote']) . '\',\'' .
+                         str_replace("'", "\\\'", $row['TarefaCodigo']) . '\',\'' .
+                         str_replace("'", "\\\'", $row['ProdutoCodigo']) . '\',\'' .
+                         $dataInicioParaJS . '\',\'' .  // Apenas data para campos date
+                         $dataFimParaJS . '\',\'' .     // Apenas data para campos date
+                         $dataExecParaJS . '\',\'' .    // Apenas data para campos date
+                         $row['TipoProcesso'] . '\',\'' . $row['id_tipoprocesso'] . '\')">';
                 $html .= '<i class="fas fa-edit"></i></button>';
-                $html .= '<button type="button" class="btn btn-sm btn-outline-danger" onclick="fuDeleta(' . $row['ID'] . ')">';
+                $html .= '<button type="button" class="btn btn-sm btn-outline-danger" onclick="fuDeleta(' . $row['id'] . ')">';
                 $html .= '<i class="fas fa-trash"></i></button>';
                 $html .= '</td>';
-                $html .= '<td style="text-align:center;">' . $contador . '</td>';
+
+                // Buscar o nome da tarefa ANTES de usar
+                $nomeTarefa = $this->buscarNomeTarefa($row['TarefaCodigo']);
+                Log::info("Tarefa - Código: {$row['TarefaCodigo']}, Nome: {$nomeTarefa}");
+                
+                // Buscar o nome do produto ANTES de usar
+                $nomeProduto = $this->buscarNomeProduto($row['ProdutoCodigo']);
+                Log::info("Produto - Código: {$row['ProdutoCodigo']}, Nome: {$nomeProduto}");
+                
+                // Converter códigos dos responsáveis em nomes
+                $responsaveisNomes = $this->converterCodigosResponsaveisParaNomes($row['Responsaveis']);
+                Log::info("Responsáveis - Códigos: {$row['Responsaveis']}, Nomes: {$responsaveisNomes}");
+
                 $html .= '<td>' . $row['Lote'] . '</td>';
-                $html .= '<td>' . $row['Produto'] . '</td>';
+                $html .= '<td>' . $nomeProduto . '</td>';
                 $html .= '<td>' . $row['TipoProcesso'] . '</td>';
-                $html .= '<td>' . $this->formataDataISO($row['DataInicio']) . '</td>';
-                $html .= '<td>' . $this->formataDataISO($row['DataFim']) . '</td>';
-                $html .= '<td>' . $this->formataDataHora($row['DataExecucao']) . '</td>';
-                $html .= '<td>' . $row['Tarefa'] . '</td>';
-                $html .= '<td>' . $row['Responsaveis'] . '</td>';
+                $html .= '<td>' . $dataInicioFormatada . '</td>';  // Data formatada para exibição
+                $html .= '<td>' . $dataFimFormatada . '</td>';     // Data formatada para exibição
+                $html .= '<td>' . $dataExecFormatada . '</td>';    // Data formatada para exibição
+                $html .= '<td>' . $nomeTarefa . '</td>';
+                $html .= '<td>' . $responsaveisNomes . '</td>';
                 $html .= '</tr>';
                 $contador++;
             }
-            
+
+            Log::info('retornaEscalaSemanal HTML gerado: ' . substr($html, 0, 200) . '...');
+
             return $html;
         } catch (\Exception $e) {
             Log::error('Erro em retornaEscalaSemanal: ' . $e->getMessage());
-            return '<tr><td colspan="10">Erro ao carregar dados da escala semanal</td></tr>';
+            return '<tr><td colspan="9">Erro ao carregar dados da escala semanal: ' . $e->getMessage() . '</td></tr>';
         }
     }
 
     /**
      * Insere uma nova escala semanal
-     * 
+     *
      * @param array $dados
      * @return bool
      */
     public function inserirEscalaSemanal($dados)
     {
+        Log::info('inserirEscalaSemanal (dados): ' . json_encode($dados));
+
         try {
+            // Validação dos dados de entrada
+            if (empty($dados['lotes']) || empty($dados['produto']) || empty($dados['tarefa'])) {
+                Log::error('Dados obrigatórios não fornecidos');
+                return false;
+            }
+
             $dbh = DB::connection()->getPdo();
-            $sql = "INSERT INTO sgcr.crsa.T0111_ESCALA_TAREFAS 
-                    (Lote, ProdutoID, TipoProcesso, DataInicio, DataFim, TarefaID, DataExecucao, Responsaveis, UsuarioCriacao, DataCriacao) 
-                    VALUES (:lote, :produto, :tipoProcesso, :dataInicio, :dataFim, :tarefa, :dataExecucao, :responsaveis, :usuario, GETDATE())";
+            $schema = $this->getEscalaSemanalSchema();
+
+            // Formatação das datas para SQL Server (formato ISO 8601)
+            $dataInicio = date('Y-m-d\T00:00:00', strtotime($dados['dataInicio']));
+            $dataFim = date('Y-m-d\T23:59:59', strtotime($dados['dataFim']));
+
+            // Formatação da data de execução (pode vir como datetime-local)
+            $dataExecucao = null;
+            if (!empty($dados['dataExecucao'])) {
+                // Se vier no formato "2025-08-11T17:06", converter para formato completo
+                if (strpos($dados['dataExecucao'], 'T') !== false) {
+                    // Garantir que tenha segundos
+                    $parts = explode('T', $dados['dataExecucao']);
+                    $datePart = $parts[0];
+                    $timePart = $parts[1];
+
+                    // Se não tiver segundos, adicionar :00
+                    if (substr_count($timePart, ':') === 1) {
+                        $timePart .= ':00';
+                    }
+
+                    $dataExecucao = $datePart . 'T' . $timePart;
+                } else {
+                    // Tentar converter outros formatos
+                    $timestamp = strtotime($dados['dataExecucao']);
+                    if ($timestamp !== false) {
+                        $dataExecucao = date('Y-m-d\TH:i:s', $timestamp);
+                    }
+                }
+            }
             
+            // Se não tiver data de execução, usar a data atual
+            if (empty($dataExecucao)) {
+                $dataExecucao = date('Y-m-d\TH:i:s');
+            }
+
+            Log::info('Datas formatadas para SQL Server:', [
+                'dataInicio' => $dataInicio,
+                'dataFim' => $dataFim,
+                'dataExecucao' => $dataExecucao
+            ]);
+
+            // Construir o nome completo da tabela
+            $tableName = $schema ? "{$schema}.T0111_ESCALA_SEMANAL" : "T0111_ESCALA_SEMANAL";
+            
+            Log::info("Usando tabela para inserção: {$tableName}");
+
+            // Novo design da tabela com os campos especificados
+            $sql = "INSERT INTO {$tableName}
+                    (lotes, produto, dat_inicial, dat_final, dat_exec, id_tarefa, nom_responsaveis, id_tipoprocesso, cdusuario, datatualizacao)
+                    VALUES (:lotes, :produto, :dat_inicial, :dat_final, :dat_exec, :id_tarefa, :nom_responsaveis, :id_tipoprocesso, :cdusuario, GETDATE())";
+
             $stmt = $dbh->prepare($sql);
-            $stmt->bindParam(':lote', $dados['lote'], \PDO::PARAM_STR);
-            $stmt->bindParam(':produto', $dados['produto'], \PDO::PARAM_STR);
-            $stmt->bindParam(':tipoProcesso', $dados['tipoProcesso'], \PDO::PARAM_STR);
-            $stmt->bindParam(':dataInicio', $dados['dataInicio'], \PDO::PARAM_STR);
-            $stmt->bindParam(':dataFim', $dados['dataFim'], \PDO::PARAM_STR);
-            $stmt->bindParam(':tarefa', $dados['tarefa'], \PDO::PARAM_STR);
-            $stmt->bindParam(':dataExecucao', $dados['dataExecucao'], \PDO::PARAM_STR);
-            $stmt->bindParam(':responsaveis', $dados['usuarios'], \PDO::PARAM_STR);
-            $stmt->bindParam(':usuario', $dados['usuario'], \PDO::PARAM_STR);
-            
-            return $stmt->execute();
+
+            // Bind com valores formatados
+            $stmt->bindValue(':lotes', $dados['lotes'], \PDO::PARAM_STR);
+            $stmt->bindValue(':produto', $dados['produto'], \PDO::PARAM_STR);
+            $stmt->bindValue(':dat_inicial', $dataInicio, \PDO::PARAM_STR);
+            $stmt->bindValue(':dat_final', $dataFim, \PDO::PARAM_STR);
+            $stmt->bindValue(':dat_exec', $dataExecucao, \PDO::PARAM_STR);
+            $stmt->bindValue(':id_tarefa', (int)$dados['tarefa'], \PDO::PARAM_INT);
+            $stmt->bindValue(':nom_responsaveis', $dados['usuarios'], \PDO::PARAM_STR);
+
+            // Mapear tipoProcesso string para ID numérico
+            $tipoProcesso = null;
+            if (!empty($dados['tipoProcesso'])) {
+                // Se já é numérico, usar diretamente
+                if (is_numeric($dados['tipoProcesso'])) {
+                    $tipoProcesso = (int)$dados['tipoProcesso'];
+                } else {
+                    // Mapear string para ID
+                    switch (strtoupper(trim($dados['tipoProcesso']))) {
+                        case 'PRODUÇÃO':
+                        case 'PRODUCAO':
+                            $tipoProcesso = 1;
+                            break;
+                        case 'TESTE':
+                            $tipoProcesso = 2;
+                            break;
+                        case 'DESENVOLVIMENTO':
+                            $tipoProcesso = 3;
+                            break;
+                        default:
+                            $tipoProcesso = 1; // Default para produção
+                            Log::warning("Tipo de processo desconhecido: {$dados['tipoProcesso']}, usando default (1)");
+                            break;
+                    }
+                }
+            }
+
+            Log::info("TipoProcesso mapeado: '{$dados['tipoProcesso']}' -> {$tipoProcesso}");
+
+            $stmt->bindValue(':id_tipoprocesso', $tipoProcesso, \PDO::PARAM_INT);
+            $stmt->bindValue(':cdusuario', (int)$dados['usuario'], \PDO::PARAM_INT);
+
+            Log::info('SQL a ser executado: ' . $sql);
+            Log::info('Parâmetros formatados: ' . json_encode([
+                'lotes' => $dados['lotes'],
+                'produto' => $dados['produto'],
+                'dat_inicial' => $dataInicio,
+                'dat_final' => $dataFim,
+                'dat_exec' => $dataExecucao,
+                'id_tarefa' => (int)$dados['tarefa'],
+                'nom_responsaveis' => $dados['usuarios'],
+                'id_tipoprocesso' => $tipoProcesso,
+                'cdusuario' => (int)$dados['usuario']
+            ]));
+
+            $result = $stmt->execute();
+
+            if ($result) {
+                Log::info('Escala semanal inserida com sucesso');
+                return true;
+            } else {
+                Log::error('Falha ao inserir escala semanal');
+                $errorInfo = $stmt->errorInfo();
+                Log::error('PDO Error Info: ' . json_encode($errorInfo));
+                return false;
+            }
         } catch (\Exception $e) {
             Log::error('Erro em inserirEscalaSemanal: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
             return false;
         }
     }
 
     /**
      * Atualiza uma escala semanal existente
-     * 
+     *
      * @param array $dados
      * @return bool
      */
     public function atualizarEscalaSemanal($dados)
     {
+        Log::info('atualizarEscalaSemanal (dados): ' . json_encode($dados));
+
         try {
+            // Validação dos dados de entrada
+            if (empty($dados['id']) || empty($dados['lotes']) || empty($dados['produto']) || empty($dados['tarefa'])) {
+                Log::error('Dados obrigatórios não fornecidos para atualização');
+                return false;
+            }
+
             $dbh = DB::connection()->getPdo();
-            $sql = "UPDATE sgcr.crsa.T0111_ESCALA_TAREFAS 
-                    SET ProdutoID = :produto, TipoProcesso = :tipoProcesso, DataExecucao = :dataExecucao, 
-                        Responsaveis = :responsaveis, UsuarioAtualizacao = :usuario, DataAtualizacao = GETDATE()
-                    WHERE ID = :id";
+            $schema = $this->getEscalaSemanalSchema();
+
+            // Formatação das datas para SQL Server (formato ISO 8601)
+            $dataInicio = date('Y-m-d\T00:00:00', strtotime($dados['dataInicio']));
+            $dataFim = date('Y-m-d\T23:59:59', strtotime($dados['dataFim']));
+
+            // Formatação da data de execução (pode vir como datetime-local)
+            $dataExecucao = null;
+            if (!empty($dados['dataExecucao'])) {
+                // Se vier no formato "2025-08-11T17:06", converter para formato completo
+                if (strpos($dados['dataExecucao'], 'T') !== false) {
+                    // Garantir que tenha segundos
+                    $parts = explode('T', $dados['dataExecucao']);
+                    $datePart = $parts[0];
+                    $timePart = $parts[1];
+
+                    // Se não tiver segundos, adicionar :00
+                    if (substr_count($timePart, ':') === 1) {
+                        $timePart .= ':00';
+                    }
+
+                    $dataExecucao = $datePart . 'T' . $timePart;
+                } else {
+                    // Tentar converter outros formatos
+                    $timestamp = strtotime($dados['dataExecucao']);
+                    if ($timestamp !== false) {
+                        $dataExecucao = date('Y-m-d\TH:i:s', $timestamp);
+                    }
+                }
+            }
             
+            // Se não tiver data de execução, usar a data atual
+            if (empty($dataExecucao)) {
+                $dataExecucao = date('Y-m-d\TH:i:s');
+            }
+
+            // Construir o nome completo da tabela
+            $tableName = $schema ? "{$schema}.T0111_ESCALA_SEMANAL" : "T0111_ESCALA_SEMANAL";
+            
+            Log::info("Usando tabela para atualização: {$tableName}");
+
+            // Novo design da tabela com os campos especificados - NOME CORRETO DA TABELA
+            $sql = "UPDATE {$tableName}
+                    SET lotes = :lotes,
+                        produto = :produto,
+                        dat_inicial = :dat_inicial,
+                        dat_final = :dat_final,
+                        dat_exec = :dat_exec,
+                        id_tarefa = :id_tarefa,
+                        nom_responsaveis = :nom_responsaveis,
+                        id_tipoprocesso = :id_tipoprocesso,
+                        cdusuario = :cdusuario,
+                        datatualizacao = GETDATE()
+                    WHERE id = :id";
+
             $stmt = $dbh->prepare($sql);
-            $stmt->bindParam(':produto', $dados['produto'], \PDO::PARAM_STR);
-            $stmt->bindParam(':tipoProcesso', $dados['tipoProcesso'], \PDO::PARAM_STR);
-            $stmt->bindParam(':dataExecucao', $dados['dataExecucao'], \PDO::PARAM_STR);
-            $stmt->bindParam(':responsaveis', $dados['usuarios'], \PDO::PARAM_STR);
-            $stmt->bindParam(':usuario', $dados['usuario'], \PDO::PARAM_STR);
-            $stmt->bindParam(':id', $dados['id'], \PDO::PARAM_INT);
-            
-            return $stmt->execute();
+
+            // Bind com valores formatados
+            $stmt->bindValue(':lotes', $dados['lotes'], \PDO::PARAM_STR);
+            $stmt->bindValue(':produto', $dados['produto'], \PDO::PARAM_STR);
+            $stmt->bindValue(':dat_inicial', $dataInicio, \PDO::PARAM_STR);
+            $stmt->bindValue(':dat_final', $dataFim, \PDO::PARAM_STR);
+            $stmt->bindValue(':dat_exec', $dataExecucao, \PDO::PARAM_STR);
+            $stmt->bindValue(':id_tarefa', (int)$dados['tarefa'], \PDO::PARAM_INT);
+            $stmt->bindValue(':nom_responsaveis', $dados['usuarios'], \PDO::PARAM_STR);
+
+            // Mapear tipoProcesso string para ID numérico
+            $tipoProcesso = null;
+            if (!empty($dados['tipoProcesso'])) {
+                // Se já é numérico, usar diretamente
+                if (is_numeric($dados['tipoProcesso'])) {
+                    $tipoProcesso = (int)$dados['tipoProcesso'];
+                } else {
+                    // Mapear string para ID
+                    switch (strtoupper(trim($dados['tipoProcesso']))) {
+                        case 'PRODUÇÃO':
+                        case 'PRODUCAO':
+                            $tipoProcesso = 1;
+                            break;
+                        case 'TESTE':
+                            $tipoProcesso = 2;
+                            break;
+                        case 'DESENVOLVIMENTO':
+                            $tipoProcesso = 3;
+                            break;
+                        default:
+                            $tipoProcesso = 1; // Default para produção
+                            Log::warning("Tipo de processo desconhecido: {$dados['tipoProcesso']}, usando default (1)");
+                            break;
+                    }
+                }
+            }
+
+            Log::info("TipoProcesso mapeado: '{$dados['tipoProcesso']}' -> {$tipoProcesso}");
+
+            $stmt->bindValue(':id_tipoprocesso', $tipoProcesso, \PDO::PARAM_INT);
+            $stmt->bindValue(':cdusuario', (int)$dados['usuario'], \PDO::PARAM_INT);
+            $stmt->bindValue(':id', (int)$dados['id'], \PDO::PARAM_INT);
+
+            Log::info('SQL a ser executado: ' . $sql);
+            Log::info('Parâmetros formatados: ' . json_encode([
+                'id' => (int)$dados['id'],
+                'lotes' => $dados['lotes'],
+                'produto' => $dados['produto'],
+                'dat_inicial' => $dataInicio,
+                'dat_final' => $dataFim,
+                'dat_exec' => $dataExecucao,
+                'id_tarefa' => (int)$dados['tarefa'],
+                'nom_responsaveis' => $dados['usuarios'],
+                'id_tipoprocesso' => $tipoProcesso,
+                'cdusuario' => (int)$dados['usuario']
+            ]));
+
+            $result = $stmt->execute();
+
+            if ($result) {
+                Log::info('Escala semanal atualizada com sucesso');
+                return true;
+            } else {
+                Log::error('Falha ao atualizar escala semanal');
+                $errorInfo = $stmt->errorInfo();
+                Log::error('PDO Error Info: ' . json_encode($errorInfo));
+                return false;
+            }
         } catch (\Exception $e) {
             Log::error('Erro em atualizarEscalaSemanal: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
             return false;
         }
     }
 
     /**
      * Exclui uma escala semanal
-     * 
+     *
      * @param int $id
      * @param string $usuario
      * @return bool
      */
     public function excluirEscalaSemanal($id, $usuario)
     {
+        Log::info("excluirEscalaSemanal - ID: {$id}, Usuario: {$usuario}");
+
         try {
             $dbh = DB::connection()->getPdo();
-            $sql = "DELETE FROM sgcr.crsa.T0111_ESCALA_TAREFAS WHERE ID = :id";
+            $schema = $this->getEscalaSemanalSchema();
+            
+            // Construir o nome completo da tabela
+            $tableName = $schema ? "{$schema}.T0111_ESCALA_SEMANAL" : "T0111_ESCALA_SEMANAL";
+            
+            Log::info("Usando tabela para exclusão: {$tableName}");
+            
+            $sql = "DELETE FROM {$tableName} WHERE id = :id";
+
             $stmt = $dbh->prepare($sql);
             $stmt->bindParam(':id', $id, \PDO::PARAM_INT);
-            
-            return $stmt->execute();
+
+            Log::info('SQL a ser executado: ' . $sql);
+
+            $result = $stmt->execute();
+
+            if ($result) {
+                Log::info('Escala semanal excluída com sucesso');
+            } else {
+                Log::error('Falha ao excluir escala semanal');
+            }
+
+            return $result;
         } catch (\Exception $e) {
             Log::error('Erro em excluirEscalaSemanal: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
             return false;
         }
     }
 
     /**
      * Duplica a última escala semanal
-     * 
+     *
      * @param string $usuario
      * @return bool
      */
@@ -1819,24 +2403,277 @@ class SGFPService
     {
         try {
             $dbh = DB::connection()->getPdo();
-            $sql = "INSERT INTO sgcr.crsa.T0111_ESCALA_TAREFAS 
-                    (Lote, ProdutoID, TipoProcesso, DataInicio, DataFim, TarefaID, DataExecucao, Responsaveis, UsuarioCriacao, DataCriacao)
-                    SELECT TOP 1 Lote, ProdutoID, TipoProcesso, 
-                           DATEADD(week, 1, DataInicio) as DataInicio, 
-                           DATEADD(week, 1, DataFim) as DataFim, 
-                           TarefaID, 
-                           DATEADD(week, 1, DataExecucao) as DataExecucao, 
-                           Responsaveis, :usuario, GETDATE()
-                    FROM sgcr.crsa.T0111_ESCALA_TAREFAS 
-                    ORDER BY DataCriacao DESC";
-            
+            //$sql = "INSERT INTO sgcr.crsa.T0111_ESCALA_TAREFAS
+            //        (Lote, ProdutoID, TipoProcesso, DataInicio, DataFim, TarefaID, DataExecucao, Responsaveis, UsuarioCriacao, DataCriacao)
+            //        SELECT TOP 1 Lote, ProdutoID, TipoProcesso,
+            //               DATEADD(week, 1, DataInicio) as DataInicio,
+            //               DATEADD(week, 1, DataFim) as DataFim,
+            //               TarefaID,
+            //               DATEADD(week, 1, DataExecucao) as DataExecucao,
+            //               Responsaveis, :usuario, GETDATE()
+            //        FROM sgcr.crsa.T0111_ESCALA_TAREFAS
+            //        ORDER BY DataCriacao DESC";
+
+            $sql =  "EXEC [sgcr].[crsa].[uspPEscalaSemanal_Duplica]";
+
+            Log::info('SQL a ser executado: ' . $sql);
             $stmt = $dbh->prepare($sql);
-            $stmt->bindParam(':usuario', $usuario, \PDO::PARAM_STR);
-            
+            //$stmt->bindParam(':usuario', $usuario, \PDO::PARAM_STR);
+
             return $stmt->execute();
         } catch (\Exception $e) {
             Log::error('Erro em duplicarEscalaSemanal: ' . $e->getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Converte códigos dos responsáveis em nomes
+     *
+     * @param string $codigosResponsaveis - String com códigos separados por vírgula (ex: "3523,3510")
+     * @return string - String com nomes separados por vírgula
+     */
+    public function converterCodigosResponsaveisParaNomes($codigosResponsaveis)
+    {
+        try {
+            if (empty($codigosResponsaveis)) {
+                return '';
+            }
+
+            $dbh = DB::connection()->getPdo();
+            
+            // Separar os códigos por vírgula
+            $codigos = array_map('trim', explode(',', $codigosResponsaveis));
+            
+            // Filtrar códigos vazios
+            $codigos = array_filter($codigos);
+            
+            if (empty($codigos)) {
+                return '';
+            }
+
+            // Criar placeholders para a consulta IN
+            $placeholders = str_repeat('?,', count($codigos) - 1) . '?';
+            
+            $sql = "SELECT p1110_usuarioid, p1110_nome 
+                    FROM sgcr.crsa.T1110_USUARIOS 
+                    WHERE p1110_usuarioid IN ({$placeholders}) 
+                    ORDER BY p1110_nome";
+            
+            $stmt = $dbh->prepare($sql);
+            $stmt->execute($codigos);
+            
+            $nomes = [];
+            while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+                $nomes[] = $row['p1110_nome'];
+            }
+            
+            // Retornar nomes separados por quebra de linha
+            return implode('<br>', $nomes);
+            
+        } catch (\Exception $e) {
+            Log::error('Erro em converterCodigosResponsaveisParaNomes: ' . $e->getMessage());
+            // Em caso de erro, retornar os códigos originais
+            return $codigosResponsaveis;
+        }
+    }
+
+    /**
+     * Busca o nome da tarefa pelo código
+     *
+     * @param string $codigoTarefa
+     * @return string
+     */
+    public function buscarNomeTarefa($codigoTarefa)
+    {
+        try {
+            Log::info("buscarNomeTarefa chamada com código: '{$codigoTarefa}'");
+            
+            if (empty($codigoTarefa)) {
+                Log::warning("buscarNomeTarefa: código vazio, retornando string vazia");
+                return '';
+            }
+
+            $dbh = DB::connection()->getPdo();
+            
+            // Verificar se a tabela existe antes de tentar acessá-la
+            Log::info("Verificando existência da tabela T0111_ESCALA_TAREFAS");
+            
+            // Tentar diferentes abordagens para verificar a tabela
+            $tableExists = false;
+            
+            // Abordagem 1: Verificar via INFORMATION_SCHEMA em crsa
+            try {
+                $tableCheck = DB::select("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'crsa' AND TABLE_NAME = 'T0111_ESCALA_TAREFAS'");
+                if (!empty($tableCheck)) {
+                    Log::info("Tabela encontrada via INFORMATION_SCHEMA em crsa");
+                    $tableExists = true;
+                }
+            } catch (\Exception $e) {
+                Log::warning("Erro ao verificar via INFORMATION_SCHEMA em crsa: " . $e->getMessage());
+            }
+            
+            // Abordagem 2: Verificar via INFORMATION_SCHEMA em dbo
+            if (!$tableExists) {
+                try {
+                    $tableCheck = DB::select("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'T0111_ESCALA_TAREFAS'");
+                    if (!empty($tableCheck)) {
+                        Log::info("Tabela encontrada via INFORMATION_SCHEMA em dbo");
+                        $tableExists = true;
+                    }
+                } catch (\Exception $e) {
+                    Log::warning("Erro ao verificar via INFORMATION_SCHEMA em dbo: " . $e->getMessage());
+                }
+            }
+            
+            // Abordagem 3: Tentar acessar a tabela diretamente em crsa
+            if (!$tableExists) {
+                try {
+                    DB::select("SELECT TOP 1 ID FROM sgcr.crsa.T0111_ESCALA_TAREFAS");
+                    Log::info("Tabela acessível diretamente em sgcr.crsa");
+                    $tableExists = true;
+                } catch (\Exception $e) {
+                    Log::warning("Erro ao acessar tabela diretamente em sgcr.crsa: " . $e->getMessage());
+                }
+            }
+            
+            // Abordagem 4: Tentar acessar a tabela diretamente em dbo
+            if (!$tableExists) {
+                try {
+                    DB::select("SELECT TOP 1 ID FROM dbo.T0111_ESCALA_TAREFAS");
+                    Log::info("Tabela acessível diretamente em dbo");
+                    $tableExists = true;
+                } catch (\Exception $e) {
+                    Log::warning("Erro ao acessar tabela diretamente em dbo: " . $e->getMessage());
+                }
+            }
+            
+            if (!$tableExists) {
+                Log::warning('Tabela T0111_ESCALA_TAREFAS não existe ou não é acessível, retornando código da tarefa');
+                return 'Tarefa ' . $codigoTarefa;
+            }
+            
+            Log::info("Tabela T0111_ESCALA_TAREFAS existe, buscando tarefa");
+
+            // Determinar o schema correto para a consulta
+            $schema = 'crsa'; // Default
+            try {
+                $tableCheckCrsa = DB::select("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'crsa' AND TABLE_NAME = 'T0111_ESCALA_TAREFAS'");
+                if (!empty($tableCheckCrsa)) {
+                    $schema = 'crsa';
+                } else {
+                    $tableCheckDbo = DB::select("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'T0111_ESCALA_TAREFAS'");
+                    if (!empty($tableCheckDbo)) {
+                        $schema = 'dbo';
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning("Erro ao determinar schema, usando default 'crsa': " . $e->getMessage());
+            }
+            
+            $tableName = $schema === 'crsa' ? "sgcr.crsa.T0111_ESCALA_TAREFAS" : "dbo.T0111_ESCALA_TAREFAS";
+            Log::info("Usando tabela: {$tableName}");
+
+            $sql = "SELECT Nome FROM {$tableName} WHERE ID = :codigo";
+            Log::info("SQL para buscar tarefa: {$sql}");
+            Log::info("Parâmetro código: '{$codigoTarefa}'");
+            
+            $stmt = $dbh->prepare($sql);
+            $stmt->bindParam(':codigo', $codigoTarefa, \PDO::PARAM_STR);
+            $stmt->execute();
+
+            $resultado = $stmt->fetch(\PDO::FETCH_ASSOC);
+            Log::info("Resultado da busca: " . json_encode($resultado));
+
+            if ($resultado && isset($resultado['Nome'])) {
+                Log::info("Tarefa encontrada: '{$resultado['Nome']}'");
+                return $resultado['Nome'];
+            }
+
+            Log::warning("Tarefa não encontrada para código '{$codigoTarefa}', retornando descrição padrão");
+            return 'Tarefa ' . $codigoTarefa;
+        } catch (\Exception $e) {
+            Log::error('Erro em buscarNomeTarefa: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+            return 'Tarefa ' . $codigoTarefa;
+        }
+    }
+
+    /**
+     * Busca o nome do produto pelo código
+     *
+     * @param string $codigoProduto
+     * @return string
+     */
+    public function buscarNomeProduto($codigoProduto)
+    {
+        try {
+            Log::info("buscarNomeProduto chamada com código: '{$codigoProduto}'");
+            
+            if (empty($codigoProduto)) {
+                Log::warning("buscarNomeProduto: código vazio, retornando string vazia");
+                return '';
+            }
+
+            $dbh = DB::connection()->getPdo();
+            
+            // Verificar se a tabela existe antes de tentar acessá-la
+            Log::info("Verificando existência da tabela vendaspelicano.dbo.T0250_PRODUTO");
+            
+            // Tentar diferentes abordagens para verificar a tabela
+            $tableExists = false;
+            
+            // Abordagem 1: Verificar via INFORMATION_SCHEMA
+            try {
+                $tableCheck = DB::select("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'T0250_PRODUTO'");
+                if (!empty($tableCheck)) {
+                    Log::info("Tabela encontrada via INFORMATION_SCHEMA em dbo");
+                    $tableExists = true;
+                }
+            } catch (\Exception $e) {
+                Log::warning("Erro ao verificar via INFORMATION_SCHEMA: " . $e->getMessage());
+            }
+            
+            // Abordagem 2: Tentar acessar a tabela diretamente
+            if (!$tableExists) {
+                try {
+                    DB::select("SELECT TOP 1 prod_codigo FROM vendaspelicano.dbo.T0250_PRODUTO");
+                    Log::info("Tabela acessível diretamente");
+                    $tableExists = true;
+                } catch (\Exception $e) {
+                    Log::warning("Erro ao acessar tabela diretamente: " . $e->getMessage());
+                }
+            }
+            
+            if (!$tableExists) {
+                Log::warning('Tabela vendaspelicano.dbo.T0250_PRODUTO não existe ou não é acessível, retornando código do produto');
+                return 'Produto ' . $codigoProduto;
+            }
+            
+            Log::info("Tabela vendaspelicano.dbo.T0250_PRODUTO existe, buscando produto");
+
+            $sql = "SELECT nome_comercial FROM vendaspelicano.dbo.T0250_PRODUTO WHERE prod_codigo = :codigo AND prod_ativo = 'A'";
+            Log::info("SQL para buscar produto: {$sql}");
+            Log::info("Parâmetro código: '{$codigoProduto}'");
+            
+            $stmt = $dbh->prepare($sql);
+            $stmt->bindParam(':codigo', $codigoProduto, \PDO::PARAM_STR);
+            $stmt->execute();
+
+            $resultado = $stmt->fetch(\PDO::FETCH_ASSOC);
+            Log::info("Resultado da busca: " . json_encode($resultado));
+
+            if ($resultado && isset($resultado['nome_comercial'])) {
+                Log::info("Produto encontrado: '{$resultado['nome_comercial']}'");
+                return $resultado['nome_comercial'];
+            }
+
+            Log::warning("Produto não encontrado para código '{$codigoProduto}', retornando descrição padrão");
+            return 'Produto ' . $codigoProduto;
+        } catch (\Exception $e) {
+            Log::error('Erro em buscarNomeProduto: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+            return 'Produto ' . $codigoProduto;
         }
     }
 }

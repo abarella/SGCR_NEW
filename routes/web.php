@@ -26,7 +26,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/', [PspPsController::class, 'index'])->name('psp-ps.index');
         Route::get('/lista', [PspPsController::class, 'lista'])->name('psp-ps.lista');
         Route::get('/status', [PspPsController::class, 'status'])->name('psp-ps.status');
-        Route::get('/test', [PspPsController::class, 'test'])->name('psp-ps.test');
+        //Route::get('/test', [PspPsController::class, 'test'])->name('psp-ps.test');
         Route::get('/{numero}', [PspPsController::class, 'show'])->name('psp-ps.show');
         Route::get('/{numero}/edit', [PspPsController::class, 'edit'])->name('psp-ps.edit');
         Route::put('/{numero}', [PspPsController::class, 'update'])->name('psp-ps.update');
@@ -63,7 +63,7 @@ Route::get('/telescope', [\Laravel\Telescope\Http\Controllers\HomeController::cl
 
 // Rotas para Escala de Tarefas
 Route::prefix('esc-tr')->name('escalatarefas.')->middleware(['auth'])->group(function() {
-                Route::get('/', [App\Http\Controllers\EscTrController::class, 'index'])->name('index');
+            Route::get('/', [App\Http\Controllers\EscTrController::class, 'index'])->name('index');
             Route::post('/store', [App\Http\Controllers\EscTrController::class, 'store'])->name('store');
             Route::post('/update', [App\Http\Controllers\EscTrController::class, 'update'])->name('update');
             Route::post('/destroy', [App\Http\Controllers\EscTrController::class, 'destroy'])->name('destroy');
@@ -80,4 +80,7 @@ Route::prefix('esc-ct')->name('esc-ct.')->middleware(['auth'])->group(function()
     Route::post('/usuarios-associados', [App\Http\Controllers\EscCtController::class, 'getUsuariosAssociados'])->name('usuarios-associados');
     Route::get('/data', [App\Http\Controllers\EscCtController::class, 'getData'])->name('data');
 });
+
+// Rota de teste para depuração
+//require __DIR__ . '/test.php';
 

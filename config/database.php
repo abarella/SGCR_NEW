@@ -97,7 +97,7 @@ return [
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DB_URL'),
-            'host' => env('DB_HOST', 'TICOTECO'),
+            'host' => env('DB_HOST', 'colibri'),
             //'port' => env('DB_PORT', '1433'),
             'database' => env('DB_DATABASE', 'sgcr_new'),
             'username' => env('DB_USERNAME', 'crsa'),

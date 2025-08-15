@@ -543,7 +543,7 @@ return [
         ],
 
         [
-            'text' => 'Esscala',
+            'text' => 'Escala',
             'icon' => 'fas fa-cogs',
             'submenu' => [
                 [
@@ -605,7 +605,7 @@ return [
                 ],
                 [
                     'type' => 'js',
-                    'asset' => false,
+                    'asset' => true,
                     'location' => 'vendor/datatables/js/dataTables.bootstrap4.min.js',
                 ],
                 [
