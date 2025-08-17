@@ -1,6 +1,7 @@
 @extends('adminlte::page')
 
 @section('title', 'Escala de Tarefas')
+@section('plugins.Datatables', true)
 
 @section('content_header')
     <h5 class="m-0">Escala de Tarefas</h1>

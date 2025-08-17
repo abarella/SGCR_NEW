@@ -552,7 +552,7 @@ return [
                     'icon' => 'fas fa-list-ol',
                 ],
                 [
-                    'text' => 'Cadastro de Tarefas',
+                    'text' => 'Cadastro de Escalas',
                     'url' => 'esc-ct',
                     'icon' => 'fas fa-clipboard-check',
                 ],

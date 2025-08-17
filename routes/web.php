@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\PspAdController;
 use App\Http\Controllers\DefinicaoSerie\DefinicaoSerieController;
 use App\Http\Controllers\PspPsController;
+use App\Http\Controllers\PspRmController;
 
 
 
@@ -32,6 +33,19 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/{numero}', [PspPsController::class, 'update'])->name('psp-ps.update');
         Route::get('/{numero}/doc', [PspPsController::class, 'editDoc'])->name('psp-ps.edit-doc');
         Route::put('/{numero}/doc', [PspPsController::class, 'updateDoc'])->name('psp-ps.update-doc');
+    });
+});
+
+// Rotas PSP-RM (R.D. & M.M.)
+Route::middleware(['auth'])->group(function () {
+    Route::prefix('psp-rm')->group(function () {
+        Route::get('/', [PspRmController::class, 'index'])->name('psp-rm.index');
+        Route::get('/test', [PspRmController::class, 'test'])->name('psp-rm.test');
+        Route::get('/listar-produtos', [PspRmController::class, 'listarProdutos'])->name('psp-rm.listar-produtos');
+        Route::post('/atualizar-producoes', [PspRmController::class, 'atualizarProducoes'])->name('psp-rm.atualizar-producoes');
+                        Route::get('/abrir-calibracao', [PspRmController::class, 'abrirCalibracao'])->name('psp-rm.abrir-calibracao');
+                Route::post('/atualizar-calibracao', [PspRmController::class, 'atualizarCalibracao'])->name('psp-rm.atualizar-calibracao');
+                Route::get('/testar-procedure', [PspRmController::class, 'testarProcedure'])->name('psp-rm.testar-procedure');
     });
 });
 
