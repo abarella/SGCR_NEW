@@ -102,7 +102,7 @@ function renderizarProdutos(produtos) {
                     <input type="text" class="form-control form-control-sm" 
                            value="${produto.Num_Producoes || 0}" 
                            size="5" maxlength="4" 
-                           onchange="verificarValor(this, '${produto.prod_cod510}', '${produto.lote || ''}', ${produto.categoria || 3})"
+                           onchange="verificarValor(this, '${produto.prod_cod510}', '${document.getElementById('txtlote').value}', ${produto.categoria || 3})"
                            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
                 </td>
                 <td>${produto.p100dtcl || ''}</td>
@@ -110,7 +110,7 @@ function renderizarProdutos(produtos) {
                 <td class="text-center">${produto.pst_serie || ''}</td>
                 <td>
                     <button type="button" class="btn btn-sm btn-outline-primary" 
-                            onclick="abrirCalibracao('${produto.prod_cod510}', '${produto.lote || ''}', ${produto.categoria || 3})">
+                            onclick="abrirCalibracao('${produto.prod_cod510}', '${document.getElementById('txtlote').value}', ${produto.categoria || 3})">
                         <i class="fas fa-cog"></i>
                     </button>
                 </td>
@@ -152,12 +152,13 @@ function abrirCalibracao(produto, lote, categoria) {
     document.getElementById('lote-calibracao').value = lote;
     document.getElementById('categoria-calibracao').value = categoria;
     
-    // Preencher campos de exibição
-    document.getElementById('produto-display').value = produto;
-    document.getElementById('lote-display').value = lote;
+    // Preencher campos de exibição (remover espaços em branco)
+    document.getElementById('produto-display').value = produto.trim();
+    document.getElementById('lote-display').value = lote.trim();
     
-    // Limpar formulário
-    document.getElementById('form-calibracao').reset();
+    // Limpar apenas os campos de calibração (não os campos de produto/lote)
+    const tbody = document.getElementById('calibracao-tbody');
+    tbody.innerHTML = '';
     
     // Gerar linhas da tabela de calibração (A, B, C, D, E)
     gerarLinhasCalibracao();
@@ -191,29 +192,91 @@ function salvarCalibracao() {
     const produto = document.getElementById('produto-calibracao').value;
     const lote = document.getElementById('lote-calibracao').value;
     const categoria = document.getElementById('categoria-calibracao').value;
+    const senha = document.getElementById('senha-calibracao').value;
     
-    const dadosCalibracao = {
-        pst_serie: document.getElementById('pst-serie').value,
-        pst_calibracao: document.getElementById('pst-calibracao').value,
-        pst_producao: document.getElementById('pst-producao').value,
-        pst_observacao: document.getElementById('pst-observacao').value
-    };
+    // Verificar se a senha foi informada
+    if (!senha) {
+        mostrarAlerta('Digite sua senha para confirmar', 'warning');
+        document.getElementById('senha-calibracao').focus();
+        return;
+    }
+    
+    // Coletar dados de todas as séries que existem na tabela
+    const dadosCalibracao = [];
+    const tbody = document.getElementById('calibracao-tbody');
+    const rows = tbody.querySelectorAll('tr');
+    
+    rows.forEach(row => {
+        const inputs = row.querySelectorAll('input');
+        if (inputs.length >= 3) {
+            const inputPasta = inputs[0];
+            const inputCalibracao = inputs[1];
+            const inputObservacao = inputs[2];
+            
+            // Extrair o nome da série do nome do input
+            const nomeInput = inputCalibracao.name;
+            const serie = nomeInput.replace('calibracao_', '');
+            
+            const pasta = inputPasta.value.trim();
+            const calibracao = inputCalibracao.value.trim();
+            const observacao = inputObservacao.value.trim();
+            
+            // Converter valor do datetime-local para formato dd/MM/yyyy HH:mm
+            let dataFormatada = '';
+            if (calibracao) {
+                try {
+                    const data = new Date(calibracao);
+                    if (!isNaN(data.getTime())) {
+                        const dia = String(data.getDate()).padStart(2, '0');
+                        const mes = String(data.getMonth() + 1).padStart(2, '0');
+                        const ano = data.getFullYear();
+                        const hora = String(data.getHours()).padStart(2, '0');
+                        const minuto = String(data.getMinutes()).padStart(2, '0');
+                        dataFormatada = `${dia}/${mes}/${ano} ${hora}:${minuto}`;
+                    } else {
+                        mostrarAlerta(`Data inválida para série ${serie}`, 'warning');
+                        inputCalibracao.focus();
+                        return;
+                    }
+                } catch (e) {
+                    mostrarAlerta(`Erro ao processar data para série ${serie}`, 'warning');
+                    inputCalibracao.focus();
+                    return;
+                }
+            }
+            
+            // Só incluir se houver dados para salvar
+            if (calibracao || observacao || pasta) {
+                dadosCalibracao.push({
+                    pst_serie: serie,
+                    pst_calibracao: dataFormatada, // Usar a data formatada
+                    pst_producao: '', // Campo não usado na tabela atual
+                    pst_numero: pasta, // Campo pasta
+                    pst_observacao: observacao
+                });
+            }
+        }
+    });
+    
+    // Verificar se há dados para salvar
+    if (dadosCalibracao.length === 0) {
+        mostrarAlerta('Nenhum dado de calibração foi informado', 'warning');
+        return;
+    }
     
     // Preparar dados para atualização
     dadosPendentes = {
         produto: produto,
         lote: lote,
         categoria: categoria,
-        dados_calibracao: dadosCalibracao
+        dados_calibracao: dadosCalibracao,
+        senha: senha
     };
     
     acaoPendente = 'atualizar_calibracao';
     
-    // Fechar modal de calibração
-    $('#modal-calibracao').modal('hide');
-    
-    // Abrir modal de senha
-    $('#modal-senha').modal('show');
+    // Executar diretamente (sem abrir modal de senha)
+    atualizarCalibracao(senha);
 }
 
 // Função para confirmar ação após validação de senha
@@ -243,6 +306,18 @@ function atualizarProducoes(senha) {
     const dados = dadosPendentes;
     dados.senha = senha;
     
+    // Validar dados antes de enviar
+    if (!dados.produto || !dados.lote || !dados.categoria || dados.num_producoes === undefined) {
+        mostrarAlerta('Dados incompletos para atualização', 'warning');
+        return;
+    }
+    
+    // Truncar produto para máximo 10 caracteres
+    dados.produto = dados.produto.substring(0, 10);
+    
+    // Truncar senha para máximo 6 caracteres
+    dados.senha = dados.senha.substring(0, 6);
+    
     fetch('/psp-rm/atualizar-producoes', {
         method: 'POST',
         headers: {
@@ -253,26 +328,40 @@ function atualizarProducoes(senha) {
         },
         body: JSON.stringify(dados)
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
-            mostrarAlerta('Produções atualizadas com sucesso', 'success');
+            mostrarAlerta(data.message || 'Produções atualizadas com sucesso', 'success');
             // Recarregar produtos
             buscarProdutos();
+            // Fechar modal
+            $('#modal-senha').modal('hide');
         } else {
             mostrarAlerta(data.message || 'Erro ao atualizar produções', 'danger');
         }
     })
     .catch(error => {
-        console.error('Erro:', error);
-        mostrarAlerta('Erro interno do servidor', 'danger');
+        console.error('Erro na requisição:', error);
+        
+        if (error.message.includes('HTTP 422')) {
+            mostrarAlerta('Dados inválidos. Verifique os campos.', 'warning');
+        } else if (error.message.includes('HTTP 500')) {
+            mostrarAlerta('Erro interno do servidor. Tente novamente.', 'danger');
+        } else {
+            mostrarAlerta('Erro na comunicação com o servidor: ' + error.message, 'danger');
+        }
     });
 }
 
 // Função para atualizar calibração
 function atualizarCalibracao(senha) {
     const dados = dadosPendentes;
-    dados.senha = senha;
+    // A senha já está em dadosPendentes.senha, não precisa sobrescrever
     
     fetch('/psp-rm/atualizar-calibracao', {
         method: 'POST',
@@ -290,6 +379,8 @@ function atualizarCalibracao(senha) {
             mostrarAlerta('Calibração atualizada com sucesso', 'success');
             // Recarregar produtos
             buscarProdutos();
+            // Fechar modal
+            $('#modal-calibracao').modal('hide');
         } else {
             mostrarAlerta(data.message || 'Erro ao atualizar calibração', 'danger');
         }
@@ -305,28 +396,70 @@ function gerarLinhasCalibracao() {
     const tbody = document.getElementById('calibracao-tbody');
     tbody.innerHTML = '';
     
-    const series = ['A', 'B', 'C', 'D', 'E'];
+    // Aguardar os dados da procedure serem carregados
+    // As linhas serão preenchidas pela função preencherDadosCalibracao
+}
+
+// Função para preencher dados de calibração
+function preencherDadosCalibracao(dados) {
+    const tbody = document.getElementById('calibracao-tbody');
+    tbody.innerHTML = '';
     
-    series.forEach(serie => {
-        const row = `
+    if (!dados || dados.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center">Nenhuma série autorizada encontrada</td></tr>';
+        return;
+    }
+    
+            // Gerar linhas baseadas nos dados da procedure
+        dados.forEach(calibracao => {
+            const serie = calibracao.pst_serie || calibracao.serie || '';
+            const pasta = calibracao.pst_numero || '';
+            let dataCalibracao = calibracao.pst_calibracao || '';
+            const observacao = calibracao.pst_observacao || '';
+            
+            // Converter data para formato aceito pelo input datetime-local (YYYY-MM-DDTHH:mm)
+            if (dataCalibracao) {
+                try {
+                    // Se a data está no formato dd/MM/yyyy HH:mm, converter para YYYY-MM-DDTHH:mm
+                    if (dataCalibracao.match(/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/)) {
+                        const [data, hora] = dataCalibracao.split(' ');
+                        const [dia, mes, ano] = data.split('/');
+                        const [h, m] = hora.split(':');
+                        dataCalibracao = `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}T${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+                    }
+                    // Se a data está no formato dd/MM/yyyy, converter para YYYY-MM-DDTHH:mm (adicionar hora 00:00)
+                    else if (dataCalibracao.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                        const [dia, mes, ano] = dataCalibracao.split('/');
+                        dataCalibracao = `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}T00:00`;
+                    }
+                } catch (e) {
+                    dataCalibracao = '';
+                }
+            }
+            
+            const row = `
             <tr>
                 <td class="text-center align-middle">${serie}</td>
+                                 <td>
+                     <input type="text" class="form-control form-control-sm"
+                            id="pasta_${serie}"
+                            name="pasta_${serie}"
+                            value="${pasta}"
+                            placeholder="Pasta"
+                            maxlength="10"
+                            readonly>
+                 </td>
                 <td>
-                    <div class="input-group">
-                        <input type="text" class="form-control form-control-sm" 
-                               name="calibracao_${serie}" 
-                               placeholder="dd/MM/yyyy HH:mm"
-                               maxlength="16">
-                        <div class="input-group-append">
-                            <span class="input-group-text">
-                                <i class="fas fa-calendar"></i>
-                            </span>
-                        </div>
-                    </div>
+                    <input type="datetime-local" class="form-control form-control-sm"
+                           id="calibracao_${serie}"
+                           name="calibracao_${serie}"
+                           value="${dataCalibracao}"
+                           step="900">
                 </td>
                 <td>
-                    <input type="text" class="form-control form-control-sm" 
-                           name="observacao_${serie}" 
+                    <input type="text" class="form-control form-control-sm"
+                           name="observacao_${serie}"
+                           value="${observacao}"
                            placeholder="Observação"
                            maxlength="100">
                 </td>
@@ -334,25 +467,19 @@ function gerarLinhasCalibracao() {
         `;
         tbody.innerHTML += row;
     });
+    
+    // Não é mais necessário inicializar datetime pickers
+    // Os campos agora usam input nativo datetime-local
 }
 
-// Função para preencher dados de calibração existentes
-function preencherDadosCalibracao(dados) {
-    dados.forEach(calibracao => {
-        const serie = calibracao.pst_serie;
-        if (serie) {
-            const inputCalibracao = document.querySelector(`input[name="calibracao_${serie}"]`);
-            const inputObservacao = document.querySelector(`input[name="observacao_${serie}"]`);
-            
-            if (inputCalibracao) {
-                inputCalibracao.value = calibracao.pst_calibracao || '';
-            }
-            if (inputObservacao) {
-                inputObservacao.value = calibracao.pst_observacao || '';
-            }
-        }
-    });
-}
+// Função para inicializar datetime pickers - REMOVIDA
+// Agora usamos input nativo datetime-local
+
+// Função para validar formato de data - REMOVIDA
+// O input datetime-local faz a validação automaticamente
+
+// Funções de validação de data - REMOVIDAS
+// O input datetime-local faz a validação automaticamente
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
@@ -372,6 +499,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     $('#modal-calibracao').on('hidden.bs.modal', function() {
-        document.getElementById('form-calibracao').reset();
+        // Limpar apenas os campos de calibração, não os campos de produto/lote
+        const tbody = document.getElementById('calibracao-tbody');
+        tbody.innerHTML = '';
+        document.getElementById('senha-calibracao').value = '';
     });
+    
+    // Verificação do TempusDominus removida - agora usamos input nativo datetime-local
 });

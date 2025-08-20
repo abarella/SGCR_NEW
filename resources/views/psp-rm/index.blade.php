@@ -2,6 +2,10 @@
 
 @section('title', 'R.D. & M.M.')
 
+{{-- Plugins necessários --}}
+@section('plugins.TempusDominus', true)
+@section('plugins.Moment', true)
+
 @section('content_header')
     <h5 class="m-0">R.D. & M.M. - Radioisotopos e Moléculas Marcadas</h5>
 @stop
@@ -98,6 +102,7 @@
                             <thead class="thead-dark">
                                 <tr>
                                     <th>Série</th>
+                                    <th>Pasta</th>
                                     <th>Data e Hora da Calibração</th>
                                     <th>Observação</th>
                                 </tr>
@@ -183,6 +188,68 @@
     /* Cabeçalho centralizado */
     .text-center {
         text-align: center !important;
+    }
+    
+    /* Estilos para validação de campos */
+    .form-control.is-valid {
+        border-color: #28a745;
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    }
+    
+    .form-control.is-invalid {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+    }
+    
+    /* Estilo para campos de data */
+    input[name^="calibracao_"] {
+        font-family: 'Courier New', monospace;
+        text-align: center;
+        cursor: pointer;
+    }
+    
+    /* Placeholder para campos de data */
+    input[name^="calibracao_"]::placeholder {
+        color: #6c757d;
+        font-size: 0.8em;
+    }
+    
+    /* Estilos para o datetime picker */
+    .datetime-picker {
+        background-color: #fff;
+        cursor: pointer;
+    }
+    
+    .datetime-picker:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .datetime-picker:focus {
+        background-color: #fff;
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+    
+    /* Estilo para o ícone do calendário */
+    .input-group-text .fas.fa-calendar {
+        color: #007bff;
+        cursor: pointer;
+    }
+    
+    .input-group-text:hover .fas.fa-calendar {
+        color: #0056b3;
+    }
+    
+    /* Responsividade para o modal */
+    @media (max-width: 768px) {
+        .modal-lg {
+            max-width: 95%;
+            margin: 10px;
+        }
+        
+        .table-responsive {
+            font-size: 0.875rem;
+        }
     }
 </style>
 @stop

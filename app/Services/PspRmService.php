@@ -4,7 +4,6 @@ namespace App\Services;
 
 use PDO;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Service para funcionalidades de R.D. & M.M. (psp-rm)
@@ -51,7 +50,6 @@ class PspRmService
 
             return $resulta == "0";
         } catch (\Exception $e) {
-            Log::error('Erro na validação de senha: ' . $e->getMessage());
             return false;
         }
     }
@@ -75,33 +73,23 @@ class PspRmService
             $stmt->bindParam(':categoria', $categoria, \PDO::PARAM_INT);
             $stmt->bindParam(':lote', $lote, \PDO::PARAM_STR);
             
-            Log::info('Executando procedure P0250_Produto_RDMM:', [
-                'categoria' => $categoria,
-                'lote' => $lote,
-                'sql' => $sql
-            ]);
-            
             $stmt->execute();
             
             // Verificar se há resultados
             $rowCount = $stmt->rowCount();
-            Log::info('Procedure executada:', [
-                'rowCount' => $rowCount,
-                'columnCount' => $stmt->columnCount()
-            ]);
             
             // Obter o resultado como string (XML)
             $xmlResult = '';
             $resultSet = [];
             
+
+            
             // Tentar diferentes abordagens para obter o resultado
             try {
                 // Método 1: fetchAll para ver todos os resultados
                 $resultSet = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-                Log::info('Resultado fetchAll:', [
-                    'total_rows' => count($resultSet),
-                    'primeira_linha' => $resultSet[0] ?? 'vazio'
-                ]);
+                
+
                 
                 if (!empty($resultSet)) {
                     // Pegar o primeiro campo da primeira linha
@@ -110,16 +98,13 @@ class PspRmService
                     
                     if ($firstColumn) {
                         $xmlResult = $firstRow[$firstColumn];
-                        Log::info('XML extraído:', [
-                            'coluna' => $firstColumn,
-                            'valor' => $xmlResult
-                        ]);
+
                     }
                 }
                 
             } catch (\Exception $fetchError) {
-                Log::warning('Erro no fetchAll, tentando fetch individual:', [
-                    'erro' => $fetchError->getMessage()
+                \Log::error('Erro no fetchAll em listarProdutos', [
+                    'error' => $fetchError->getMessage()
                 ]);
                 
                 // Método 2: fetch individual
@@ -132,23 +117,23 @@ class PspRmService
                         }
                     }
                 } catch (\Exception $fetch2Error) {
-                    Log::error('Erro no fetch individual:', [
-                        'erro' => $fetch2Error->getMessage()
+                    \Log::error('Erro no fetch individual em listarProdutos', [
+                        'error' => $fetch2Error->getMessage()
                     ]);
                 }
             }
             
             if (empty($xmlResult)) {
-                Log::warning('Nenhum resultado XML encontrado da procedure:', [
-                    'categoria' => $categoria,
-                    'lote' => $lote,
-                    'resultSet' => $resultSet
-                ]);
+                \Log::warning('XML vazio retornado pela procedure P0250_Produto_RDMM');
                 return [];
             }
             
+
+            
             // Converter XML para array
             $produtos = $this->parseXmlToList($xmlResult);
+            
+
             
             // Adicionar campos adicionais e tratar datas
             foreach ($produtos as $produto) {
@@ -156,22 +141,32 @@ class PspRmService
                 $produto->categoria = intval($categoria);
                 
                 // Tratar campo de calibração para formato dd/MM/YYYY
-                if (isset($produto->p100dtcl)) {
-                    $produto->p100dtcl = $this->formatarDataCalibracao($produto->p100dtcl);
+                if (isset($produto->p100dtcl) && !empty($produto->p100dtcl)) {
+                    try {
+                        $produto->p100dtcl = $this->formatarDataCalibracao($produto->p100dtcl);
+                    } catch (\Exception $e) {
+                        $produto->p100dtcl = ''; // Definir como vazio se der erro
+                    }
+                } else {
+                    $produto->p100dtcl = ''; // Garantir que seja string vazia se não existir
                 }
             }
-            
-            Log::info('Produtos processados com sucesso:', [
-                'total_produtos' => count($produtos)
-            ]);
             
             return $produtos;
 
         } catch (\PDOException $e) {
-            Log::error('Erro PDO ao listar produtos RDMM: ' . $e->getMessage());
+            \Log::error('Erro PDO ao listar produtos', [
+                'error' => $e->getMessage(),
+                'categoria' => $categoria,
+                'lote' => $lote
+            ]);
             throw new \Exception('Erro de banco de dados ao listar produtos: ' . $e->getMessage());
         } catch (\Exception $e) {
-            Log::error('Erro geral ao listar produtos RDMM: ' . $e->getMessage());
+            \Log::error('Erro interno ao listar produtos', [
+                'error' => $e->getMessage(),
+                'categoria' => $categoria,
+                'lote' => $lote
+            ]);
             throw new \Exception('Erro interno ao listar produtos: ' . $e->getMessage());
         }
     }
@@ -185,27 +180,72 @@ class PspRmService
      * @param int $numProducoes
      * @return bool
      */
-    public function atualizarProducoes($produto, $lote, $categoria, $numProducoes)
+    public function atualizarProducoes($produto, $lote, $categoria, $numProducoes, $senhaDigitada = '')
     {
         try {
             $dbh = DB::connection()->getPdo();
             
-            // Procedure baseada no arquivo cr_pst03.js - PPST_RR_MM
-            $sql = "SET NOCOUNT ON; exec sgcr.crsa.PPST_RR_MM @produto = :produto, @lote = :lote, @produto_qtde = :produto_qtde, @cdusuario = :cdusuario, @senha = :senha";
+            // Obter usuário autenticado
+            $cdusuario = \Illuminate\Support\Facades\Auth::user()->cdusuario ?? 0;
+            
+            // Validar parâmetros
+            if (empty($produto) || empty($lote) || empty($numProducoes)) {
+                throw new \Exception('Parâmetros obrigatórios não informados');
+            }
+            
+            // Truncar produto para char(10) se necessário
+            $produto = substr($produto, 0, 10);
+            
+            // Truncar senha para char(6) se necessário
+            $senha = substr($senhaDigitada, 0, 6);
+            
+            // Procedure PPST_RR_MM usando variáveis PHP para capturar OUTPUT
+            $sql = "EXEC sgcr.crsa.PPST_RR_MM ?, ?, ?, ?, ?, ?, ?";
+            
             $stmt = $dbh->prepare($sql);
             
-            $stmt->bindParam(':produto', $produto, \PDO::PARAM_STR);
-            $stmt->bindParam(':lote', $lote, \PDO::PARAM_STR);
-            $stmt->bindParam(':produto_qtde', $numProducoes, \PDO::PARAM_INT);
-            $stmt->bindParam(':cdusuario', auth()->user()->cdusuario ?? '', \PDO::PARAM_STR);
-            $stmt->bindParam(':senha', '', \PDO::PARAM_STR); // Senha já foi validada no controller
+            // Variáveis para capturar parâmetros OUTPUT
+            $resulta = 0;
+            $mensa = '';
+            
+            // Binding dos parâmetros incluindo OUTPUT
+            $stmt->bindParam(1, $produto, \PDO::PARAM_STR);
+            $stmt->bindParam(2, $lote, \PDO::PARAM_INT);
+            $stmt->bindParam(3, $numProducoes, \PDO::PARAM_INT);
+            $stmt->bindParam(4, $cdusuario, \PDO::PARAM_INT);
+            $stmt->bindParam(5, $senha, \PDO::PARAM_STR);
+            $stmt->bindParam(6, $resulta, \PDO::PARAM_INT|\PDO::PARAM_INPUT_OUTPUT, 4);
+            $stmt->bindParam(7, $mensa, \PDO::PARAM_STR|\PDO::PARAM_INPUT_OUTPUT, 50);
             
             $stmt->execute();
             
-            return true;
 
+            
+            // Verificar resultado da procedure
+            if ($resulta != 0) {
+                throw new \Exception('Erro na procedure: ' . $mensa);
+            }
+            
+            // Se não há mensagem da procedure, usar mensagem padrão
+            $mensagemFinal = !empty(trim($mensa)) ? $mensa : 'Produções atualizadas com sucesso';
+            
+            return [
+                'success' => true,
+                'message' => $mensagemFinal
+            ];
+            
         } catch (\Exception $e) {
-            Log::error('Erro ao atualizar produções: ' . $e->getMessage());
+            \Log::error('Erro ao atualizar produções: ' . $e->getMessage(), [
+                'produto' => $produto,
+                'lote' => $lote,
+                'categoria' => $categoria,
+                'numProducoes' => $numProducoes,
+                'cdusuario' => $cdusuario ?? 'N/A',
+                'sql' => $sql ?? 'N/A',
+                'resulta' => $resulta ?? 'N/A',
+                'mensa' => $mensa ?? 'N/A'
+            ]);
+            
             throw new \Exception('Erro ao atualizar produções: ' . $e->getMessage());
         }
     }
@@ -223,29 +263,78 @@ class PspRmService
         try {
             $dbh = DB::connection()->getPdo();
             
-            // Procedure baseada no arquivo cr_calibracao.js - PPST_LISTA7A
-            $sql = "SET NOCOUNT ON; exec sgcr.crsa.PPST_LISTA7A @produto = :produto, @lote = :lote";
+            // Procedure PPST_LISTA7A para obter séries autorizadas
+            $sql = "EXEC sgcr.crsa.PPST_LISTA7A ?, ?";
             $stmt = $dbh->prepare($sql);
             
-            $stmt->bindParam(':produto', $produto, \PDO::PARAM_STR);
-            $stmt->bindParam(':lote', $lote, \PDO::PARAM_STR);
+            $stmt->bindParam(1, $produto, \PDO::PARAM_STR);
+            $stmt->bindParam(2, $lote, \PDO::PARAM_INT);
             
             $stmt->execute();
             
             // Obter o resultado como string (XML)
             $xmlResult = '';
-            while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-                // A procedure retorna XML, então pegamos o primeiro campo
-                $xmlResult = $row[array_keys($row)[0]] ?? '';
-                break; // Só precisamos da primeira linha
+            $resultSet = [];
+            
+
+            
+            // Tentar diferentes abordagens para obter o resultado XML
+            try {
+                // Método 1: fetchAll para ver todos os resultados
+                $resultSet = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                
+
+                
+                if (!empty($resultSet)) {
+                    // Tentar concatenar todas as linhas se houver múltiplas
+                    $xmlResult = '';
+                    foreach ($resultSet as $row) {
+                        $firstColumn = array_keys($row)[0] ?? null;
+                        if ($firstColumn && !empty($row[$firstColumn])) {
+                            $xmlResult .= $row[$firstColumn];
+                        }
+                    }
+                    
+
+                }
+                
+            } catch (\Exception $fetchError) {
+                \Log::error('Erro no fetchAll', [
+                    'error' => $fetchError->getMessage()
+                ]);
+                
+                // Método 2: fetch individual
+                try {
+                    $stmt->execute(); // Re-executar para resetar o cursor
+                    $xmlResult = '';
+                    while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+                        $resultSet[] = $row;
+                        $firstColumn = array_keys($row)[0] ?? null;
+                        if ($firstColumn && !empty($row[$firstColumn])) {
+                            $xmlResult .= $row[$firstColumn];
+                        }
+                    }
+                    
+
+                    
+                } catch (\Exception $fetch2Error) {
+                    \Log::error('Erro no fetch individual', [
+                        'error' => $fetch2Error->getMessage()
+                    ]);
+                }
             }
             
             if (empty($xmlResult)) {
+                \Log::warning('XML vazio retornado pela procedure PPST_LISTA7A');
                 return [];
             }
             
+
+            
             // Converter XML para array
             $dados = $this->parseXmlToList($xmlResult);
+            
+
             
             // Tratar campos de data de calibração
             foreach ($dados as $calibracao) {
@@ -255,49 +344,122 @@ class PspRmService
             }
             
             return $dados;
-
+            
         } catch (\PDOException $e) {
-            Log::error('Erro PDO ao obter dados de calibração: ' . $e->getMessage());
+            \Log::error('Erro PDO ao obter dados de calibração', [
+                'error' => $e->getMessage(),
+                'produto' => $produto,
+                'lote' => $lote
+            ]);
             throw new \Exception('Erro de banco de dados ao obter dados de calibração: ' . $e->getMessage());
         } catch (\Exception $e) {
-            Log::error('Erro geral ao obter dados de calibração: ' . $e->getMessage());
+            \Log::error('Erro interno ao obter dados de calibração', [
+                'error' => $e->getMessage(),
+                'produto' => $produto,
+                'lote' => $lote
+            ]);
             throw new \Exception('Erro interno ao obter dados de calibração: ' . $e->getMessage());
         }
     }
 
     /**
-     * Atualiza dados de calibração
+     * Atualiza dados de calibração usando procedure Ppst_SERIE2_GRAVA
      *
      * @param string $produto
      * @param string $lote
      * @param int $categoria
      * @param array $dadosCalibracao
+     * @param string $senha
      * @return bool
      */
-    public function atualizarCalibracao($produto, $lote, $categoria, $dadosCalibracao)
+    public function atualizarCalibracao($produto, $lote, $categoria, $dadosCalibracao, $senha = '')
     {
         try {
             $dbh = DB::connection()->getPdo();
             
-            // Procedure para atualizar calibração (baseada no arquivo legado)
-            // Nota: Esta procedure precisa ser implementada no SQL Server
-            $sql = "SET NOCOUNT ON; exec sgcr.crsa.PPST_AtualizarCalibracao @produto = :produto, @lote = :lote, @pst_serie = :pst_serie, @pst_calibracao = :pst_calibracao, @pst_producao = :pst_producao, @pst_observacao = :pst_observacao, @cdusuario = :cdusuario";
-            $stmt = $dbh->prepare($sql);
+            // Verificar se dadosCalibracao é um array
+            if (!is_array($dadosCalibracao)) {
+                throw new \Exception('Dados de calibração inválidos');
+            }
             
-            $stmt->bindParam(':produto', $produto, \PDO::PARAM_STR);
-            $stmt->bindParam(':lote', $lote, \PDO::PARAM_STR);
-            $stmt->bindParam(':pst_serie', $dadosCalibracao['pst_serie'] ?? '', \PDO::PARAM_STR);
-            $stmt->bindParam(':pst_calibracao', $dadosCalibracao['pst_calibracao'] ?? '', \PDO::PARAM_STR);
-            $stmt->bindParam(':pst_producao', $dadosCalibracao['pst_producao'] ?? '', \PDO::PARAM_STR);
-            $stmt->bindParam(':pst_observacao', $dadosCalibracao['pst_observacao'] ?? '', \PDO::PARAM_STR);
-            $stmt->bindParam(':cdusuario', auth()->user()->cdusuario ?? '', \PDO::PARAM_STR);
+            // Validar senha se fornecida
+            if (!empty($senha)) {
+                $usuario = \Illuminate\Support\Facades\Auth::user()->cdusuario ?? '';
+                if (!$this->validarSenha($usuario, $senha)) {
+                    throw new \Exception('Senha inválida');
+                }
+            }
             
-            $stmt->execute();
+            $cdusuario = \Illuminate\Support\Facades\Auth::user()->cdusuario ?? '';
+            $sucesso = true;
+            $erros = [];
+            
+            // Processar cada item de calibração
+            foreach ($dadosCalibracao as $calibracao) {
+                if (!isset($calibracao['pst_serie']) || !isset($calibracao['pst_calibracao'])) {
+                    continue; // Pular itens inválidos
+                }
+                
+                try {
+                    // Converter data de calibração para formato SQL Server
+                    $pst_calibracao = $this->converterDataParaSQLServer($calibracao['pst_calibracao']);
+                    
+                    // Procedure correta para atualizar calibração - usando parâmetros nomeados corretos
+                    $sql = "SET NOCOUNT ON; exec sgcr.crsa.Ppst_SERIE2_GRAVA @produto = :produto, @lote = :lote, @data_calibracao = :pst_calibracao, @pst_serie = :pst_serie, @pst_producao = :pst_producao, @pst_numero = :pst_numero, @cdusuario = :cdusuario, @senha = :senha, @pst_observacao = :pst_observacao, @resulta = :resulta, @mensa = :mensa";
+                    $stmt = $dbh->prepare($sql);
+                    
+                                         $pst_serie = $calibracao['pst_serie'] ?? '';
+                     $pst_producao = $calibracao['pst_producao'] ?? '';
+                     $pst_observacao = $calibracao['pst_observacao'] ?? '';
+                     $pst_numero = $calibracao['pst_numero'] ?? 0; // Campo pasta
+                     $senha_param = $senha; // Usar a senha passada como parâmetro
+                    $resulta = 0;
+                    $mensa = '';
+                    
+                    
+                    
+                    $stmt->bindParam(':produto', $produto, \PDO::PARAM_STR);
+                    $stmt->bindParam(':lote', $lote, \PDO::PARAM_STR);
+                    $stmt->bindParam(':pst_calibracao', $pst_calibracao, \PDO::PARAM_STR);
+                    $stmt->bindParam(':pst_serie', $pst_serie, \PDO::PARAM_STR);
+                    $stmt->bindParam(':pst_producao', $pst_producao, \PDO::PARAM_STR);
+                    $stmt->bindParam(':pst_numero', $pst_numero, \PDO::PARAM_INT);
+                    $stmt->bindParam(':cdusuario', $cdusuario, \PDO::PARAM_STR);
+                    $stmt->bindParam(':senha', $senha_param, \PDO::PARAM_STR);
+                    $stmt->bindParam(':pst_observacao', $pst_observacao, \PDO::PARAM_STR);
+                    $stmt->bindParam(':resulta', $resulta, \PDO::PARAM_INT|\PDO::PARAM_INPUT_OUTPUT, 4);
+                    $stmt->bindParam(':mensa', $mensa, \PDO::PARAM_STR|\PDO::PARAM_INPUT_OUTPUT, 4000);
+                    
+                    $stmt->execute();
+                    
+
+                    
+                    if ($resulta != 0) {
+                        $erros[] = "Série {$pst_serie}: " . $mensa;
+                        $sucesso = false;
+                    }
+                    
+                } catch (\Exception $e) {
+                    \Log::error('Erro na procedure Ppst_SERIE2_GRAVA', [
+                        'error' => $e->getMessage(),
+                        'produto' => $produto,
+                        'lote' => $lote,
+                        'pst_serie' => $pst_serie ?? 'N/A',
+                        'pst_calibracao_original' => $calibracao['pst_calibracao'] ?? 'N/A',
+                        'pst_calibracao_convertido' => $pst_calibracao ?? 'N/A'
+                    ]);
+                    $erros[] = "Série {$pst_serie}: " . $e->getMessage();
+                    $sucesso = false;
+                }
+            }
+            
+            if (!$sucesso) {
+                throw new \Exception('Erros ao atualizar calibração: ' . implode('; ', $erros));
+            }
             
             return true;
 
         } catch (\Exception $e) {
-            Log::error('Erro ao atualizar calibração: ' . $e->getMessage());
             throw new \Exception('Erro ao atualizar calibração: ' . $e->getMessage());
         }
     }
@@ -310,6 +472,17 @@ class PspRmService
      */
     private function formatarDataCalibracao($data)
     {
+        if (empty($data) || $data === null) {
+            return '';
+        }
+        
+        // Converter para string se não for
+        $data = (string)$data;
+        
+        // Remover espaços em branco
+        $data = trim($data);
+        
+        // Se está vazio após trim, retorna vazio
         if (empty($data)) {
             return '';
         }
@@ -345,10 +518,6 @@ class PspRmService
             return $data;
             
         } catch (\Exception $e) {
-            Log::warning('Erro ao formatar data de calibração:', [
-                'data_original' => $data,
-                'erro' => $e->getMessage()
-            ]);
             return $data;
         }
     }
@@ -364,51 +533,68 @@ class PspRmService
 
             // Verifica se o XML é válido
             if (empty($xmlString)) {
-                Log::warning('XML vazio:', ['xml' => $xmlString]);
+                \Log::warning('XML string vazio no parseXmlToList');
                 return [];
             }
 
-            // Log do XML original para debug
-            Log::info('XML recebido da procedure:', [
-                'xml_original' => $xmlString,
-                'tamanho' => strlen($xmlString)
-            ]);
+
 
             // Corrige caracteres especiais que podem estar causando problemas
             $xmlString = str_replace('&lt;', '<', $xmlString);
             $xmlString = str_replace('&gt;', '>', $xmlString);
             $xmlString = str_replace('&amp;', '&', $xmlString);
             $xmlString = str_replace('&quot;', '"', $xmlString);
+            
 
-            // Se não tem declaração XML, adiciona uma
-            if (!preg_match('/^<\?xml/', $xmlString)) {
-                // Sempre adiciona a declaração XML e envolve em <root>
-                $xmlString = '<?xml version="1.0" encoding="UTF-8"?><root>' . $xmlString . '</root>';
-                Log::info('Adicionada declaração XML:', ['xml_modificado' => $xmlString]);
+            
+            // Verificar se o XML está completo ou truncado
+            $openTags = substr_count($xmlString, '<row');
+            $closeTags = substr_count($xmlString, '</row>');
+            
+
+            
+            // Verificar se o XML está truncado e corrigir
+            if ($openTags > $closeTags) {
+                // Como as tags <row> são self-closing (/>), não precisamos adicionar </row>
+                // Apenas verificamos se o XML está completo
+                if (!str_ends_with($xmlString, '>')) {
+                    // Remove a última linha incompleta
+                    $lastRowPos = strrpos($xmlString, '<row');
+                    if ($lastRowPos !== false) {
+                        $xmlString = substr($xmlString, 0, $lastRowPos);
+                    }
+                }
             }
+            
+            // Adicionar tag <root> se não existir
+            if (!str_contains($xmlString, '<root>')) {
+                $xmlString = '<root>' . $xmlString . '</root>';
+            }
+
+
 
             // Carrega o XML
             $xml = simplexml_load_string($xmlString);
 
             if ($xml === false) {
                 $errors = libxml_get_errors();
-                Log::error('Erro ao carregar XML:', [
-                    'xml' => $xmlString,
-                    'errors' => $errors
-                ]);
                 libxml_clear_errors();
+                
+                \Log::error('Erro ao parsear XML da procedure PPST_LISTA7A', [
+                    'xml_string' => $xmlString,
+                    'libxml_errors' => $errors,
+                    'xml_length' => strlen($xmlString)
+                ]);
+                
                 return [];
             }
 
-            Log::info('XML carregado com sucesso:', [
-                'xml_objeto' => $xml ? 'carregado' : 'falhou',
-                'elementos_children' => count($xml->children()),
-                'elementos_row' => isset($xml->row) ? count($xml->row) : 0
-            ]);
-
             $result = [];
 
-            // Procura por elementos 'row' no XML
+            // Procura por diferentes estruturas de XML - BUSCA EXAUSTIVA
+            $result = [];
+            
+            // Estrutura 1: <row> direto
             if (isset($xml->row)) {
                 foreach ($xml->row as $row) {
                     $item = new \stdClass();
@@ -418,86 +604,238 @@ class PspRmService
                     $result[] = $item;
                 }
             }
+            
+            // Estrutura 2: <rows><row>
+            if (isset($xml->rows) && isset($xml->rows->row)) {
+                foreach ($xml->rows->row as $row) {
+                    $item = new \stdClass();
+                    foreach ($row->attributes() as $key => $value) {
+                        $item->$key = (string)$value;
+                    }
+                    $result[] = $item;
+                }
+            }
+            
+            // Estrutura 3: <data><row>
+            if (isset($xml->data) && isset($xml->data->row)) {
+                foreach ($xml->data->row as $row) {
+                    $item = new \stdClass();
+                    foreach ($row->attributes() as $key => $value) {
+                        $item->$key = (string)$value;
+                    }
+                    $result[] = $item;
+                }
+            }
+            
+            // Estrutura 4: <root><row> (se foi adicionado automaticamente)
+            if (isset($xml->root) && isset($xml->root->row)) {
+                foreach ($xml->root->row as $row) {
+                    $item = new \stdClass();
+                    foreach ($row->attributes() as $key => $value) {
+                        $item->$key = (string)$value;
+                    }
+                    $result[] = $item;
+                }
+            }
+            
+            // Estrutura 5: Busca recursiva por qualquer elemento <row>
+            if (empty($result)) {
+                $result = $this->findRowsRecursively($xml);
+            }
+            
+            // Estrutura 6: Busca por qualquer elemento que possa conter dados
+            if (empty($result)) {
+                foreach ($xml->children() as $child) {
+                    if ($child->count() > 0) {
+                        foreach ($child->children() as $subChild) {
+                            if ($subChild->count() == 0) { // Elemento sem filhos
+                                $item = new \stdClass();
+                                foreach ($subChild->attributes() as $key => $value) {
+                                    $item->$key = (string)$value;
+                                }
+                                if (!empty((array)$item)) {
+                                    $result[] = $item;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
 
-            Log::info('XML convertido com sucesso:', [
-                'total_registros' => count($result),
-                'primeiro_registro' => $result ? get_object_vars($result[0]) : []
-            ]);
 
             return $result;
 
         } catch (\Exception $e) {
-            Log::error('Erro ao processar XML:', [
-                'xml' => $xmlString,
+            \Log::error('Exceção ao parsear XML da procedure PPST_LISTA7A', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'error_trace' => $e->getTraceAsString(),
+                'xml_string' => $xmlString ?? 'N/A',
+                'xml_length' => strlen($xmlString ?? '')
             ]);
+            
             return [];
         }
     }
+    
+    /**
+     * Busca recursivamente por elementos <row> em qualquer nível do XML
+     */
+    private function findRowsRecursively($xml, $depth = 0)
+    {
+        $result = [];
+        $maxDepth = 5; // Limitar profundidade para evitar loops infinitos
+        
+        if ($depth >= $maxDepth) {
+            return $result;
+        }
+        
+        foreach ($xml->children() as $child) {
+            $childName = $child->getName();
+            
+            // Se encontrou um elemento <row>, processar
+            if ($childName === 'row') {
+                $item = new \stdClass();
+                foreach ($child->attributes() as $key => $value) {
+                    $item->$key = (string)$value;
+                }
+                $result[] = $item;
+            }
+            // Se o elemento tem filhos, buscar recursivamente
+            elseif ($child->count() > 0) {
+                $subResult = $this->findRowsRecursively($child, $depth + 1);
+                $result = array_merge($result, $subResult);
+            }
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Extrai séries do XML para debug
+     */
+    private function extractSeriesFromXml($xmlString)
+    {
+        $series = [];
+        
+        // Buscar por diferentes formatos de atributo pst_serie
+        if (preg_match_all('/pst_serie="([^"]*)"/', $xmlString, $matches)) {
+            $series = $matches[1];
+        } elseif (preg_match_all("/pst_serie='([^']*)'/", $xmlString, $matches)) {
+            $series = $matches[1];
+        }
+        
+
+        
+        return $series;
+    }
+    
+
 
     /**
-     * Testa a conexão com a procedure (método alternativo)
+     * Converte data de calibração para formato SQL Server (YYYYMMDD HH:mm)
      *
-     * @param int $categoria
-     * @param string $lote
-     * @return array
+     * @param string $data
+     * @return string|null
      */
-    public function testarProcedure($categoria, $lote)
+    private function converterDataParaSQLServer($data)
     {
+
+        
+        if (empty($data) || $data === null) {
+            return null;
+        }
+        
+        // Converter para string se não for
+        $data = (string)$data;
+        
+        // Remover espaços em branco
+        $data = trim($data);
+        
+        // Se está vazio após trim, retorna null
+        if (empty($data)) {
+            return null;
+        }
+        
         try {
-            $dbh = DB::connection()->getPdo();
-            
-            // Teste simples para ver se a procedure existe e executa
-            $sql = "SET NOCOUNT ON; exec sgcr.crsa.P0250_Produto_RDMM @categoria = :categoria, @lote = :lote";
-            $stmt = $dbh->prepare($sql);
-            
-            $stmt->bindParam(':categoria', $categoria, \PDO::PARAM_INT);
-            $stmt->bindParam(':lote', $lote, \PDO::PARAM_STR);
-            
-            Log::info('Testando procedure P0250_Produto_RDMM:', [
-                'categoria' => $categoria,
-                'lote' => $lote
-            ]);
-            
-            $stmt->execute();
-            
-            // Tentar obter informações sobre o resultado
-            $columnCount = $stmt->columnCount();
-            $rowCount = $stmt->rowCount();
-            
-            Log::info('Informações da procedure:', [
-                'columnCount' => $columnCount,
-                'rowCount' => $rowCount
-            ]);
-            
-            // Tentar obter o resultado de forma mais direta
-            $result = [];
-            try {
-                $result = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-                Log::info('Resultado do teste:', [
-                    'total_rows' => count($result),
-                    'estrutura' => $result ? array_keys($result[0]) : []
-                ]);
-            } catch (\Exception $e) {
-                Log::warning('Erro ao fazer fetch:', ['erro' => $e->getMessage()]);
+            // Se já está no formato dd/MM/yyyy HH:mm, converter para YYYYMMDD HH:mm
+            if (preg_match('/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/', $data)) {
+                $date = \DateTime::createFromFormat('d/m/Y H:i', $data);
+                if ($date) {
+                    return $date->format('Ymd H:i');
+                }
             }
             
-            return [
-                'success' => true,
-                'columnCount' => $columnCount,
-                'rowCount' => $rowCount,
-                'result' => $result
-            ];
+            // Se está no formato dd/MM/yyyy, converter para YYYYMMDD HH:mm (adicionar hora 00:00)
+            if (preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $data)) {
+                $date = \DateTime::createFromFormat('d/m/Y', $data);
+                if ($date) {
+                    return $date->format('Ymd H:i');
+                }
+            }
+            
+            // Se está no formato dd-MM-yyyy HH:mm, converter para YYYYMMDD HH:mm
+            if (preg_match('/^\d{2}-\d{2}-\d{4} \d{2}:\d{2}$/', $data)) {
+                $date = \DateTime::createFromFormat('d-m-Y H:i', $data);
+                if ($date) {
+                    return $date->format('Ymd H:i');
+                }
+            }
+            
+            // Se está no formato dd-MM-yyyy, converter para YYYYMMDD HH:mm (adicionar hora 00:00)
+            if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $data)) {
+                $date = \DateTime::createFromFormat('d-m-Y', $data);
+                if ($date) {
+                    return $date->format('Ymd H:i');
+                }
+            }
+            
+            // Se está no formato YYYY-MM-DD HH:MM:SS, converter para YYYYMMDD HH:mm
+            if (preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $data)) {
+                $date = \DateTime::createFromFormat('Y-m-d H:i:s', $data);
+                if ($date) {
+                    return $date->format('Ymd H:i');
+                }
+            }
+            
+            // Se está no formato YYYY-MM-DD, adicionar hora 00:00 e converter para YYYYMMDD HH:mm
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $data)) {
+                $date = \DateTime::createFromFormat('Y-m-d', $data);
+                if ($date) {
+                    return $date->format('Ymd H:i');
+                }
+            }
+            
+            // Se está no formato YYYY-MM-DDTHH:MM, converter para YYYYMMDD HH:mm
+            if (preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/', $data)) {
+                $date = \DateTime::createFromFormat('Y-m-d\TH:i', $data);
+                if ($date) {
+                    return $date->format('Ymd H:i');
+                }
+            }
+            
+            // Se está no formato YYYY-MM-DDTHH:MM:SS, converter para YYYYMMDD HH:mm
+            if (preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/', $data)) {
+                $date = \DateTime::createFromFormat('Y-m-d\TH:i:s', $data);
+                if ($date) {
+                    return $date->format('Ymd H:i');
+                }
+            }
+            
+            // Se não conseguir converter, tentar com strtotime
+            $timestamp = strtotime($data);
+            if ($timestamp !== false) {
+                return date('Ymd H:i', $timestamp);
+            }
+            
+            // Se não conseguir converter, retorna null
+            return null;
             
         } catch (\Exception $e) {
-            Log::error('Erro ao testar procedure: ' . $e->getMessage());
-            return [
-                'success' => false,
-                'error' => $e->getMessage()
-            ];
+            return null;
         }
     }
+
 
     /**
      * Obtém categorias disponíveis

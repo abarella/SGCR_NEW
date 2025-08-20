@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Services\PspRmService;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB; // Added DB facade
 
 class PspRmController extends Controller
 {
@@ -26,11 +26,75 @@ class PspRmController extends Controller
     }
 
     /**
-     * Página de teste para verificar o layout
+     * Método de teste para verificar se a rota está funcionando
      */
     public function test()
     {
-        return view('psp-rm.test');
+        try {
+            $user = Auth::user();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Rota funcionando',
+                'user' => [
+                    'id' => $user->id,
+                    'cdusuario' => $user->cdusuario ?? 'N/A',
+                    'name' => $user->name ?? 'N/A'
+                ],
+                'timestamp' => now()->toISOString()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro: ' . $e->getMessage(),
+                'timestamp' => now()->toISOString()
+            ], 500);
+        }
+    }
+
+    /**
+     * Testa a conexão com o banco de dados
+     */
+    public function testDatabase()
+    {
+        try {
+            // Testar conexão básica
+            DB::connection()->getPdo();
+            
+            // Testar se conseguimos executar uma query simples
+            $result = DB::select('SELECT 1 as test');
+            
+            // Testar se conseguimos acessar a procedure
+            $dbh = DB::connection()->getPdo();
+            $sql = "SET NOCOUNT ON; SELECT 'Teste de conexão' as status";
+            $stmt = $dbh->prepare($sql);
+            $stmt->execute();
+            $testResult = $stmt->fetch(\PDO::FETCH_ASSOC);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Conexão com banco funcionando',
+                'database' => [
+                    'connection' => 'OK',
+                    'simple_query' => 'OK',
+                    'procedure_test' => 'OK',
+                    'driver' => DB::connection()->getDriverName(),
+                    'database' => DB::connection()->getDatabaseName()
+                ],
+                'timestamp' => now()->toISOString()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro na conexão com banco: ' . $e->getMessage(),
+                'error_details' => [
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'trace' => $e->getTraceAsString()
+                ],
+                'timestamp' => now()->toISOString()
+            ], 500);
+        }
     }
 
     /**
@@ -57,7 +121,6 @@ class PspRmController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Erro ao listar produtos RDMM: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Erro interno do servidor'
@@ -72,11 +135,11 @@ class PspRmController extends Controller
     {
         try {
             $request->validate([
-                'produto' => 'required|string',
+                'produto' => 'required|string|max:10',
                 'lote' => 'required|string',
                 'categoria' => 'required|integer',
                 'num_producoes' => 'required|integer|min:0',
-                'senha' => 'required|string'
+                'senha' => 'required|string|max:6'
             ]);
 
             // Validar senha do usuário
@@ -91,20 +154,27 @@ class PspRmController extends Controller
                 $request->produto,
                 $request->lote,
                 $request->categoria,
-                $request->num_producoes
+                $request->num_producoes,
+                $request->senha
             );
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Produções atualizadas com sucesso',
-                'data' => $resultado
-            ]);
+            return response()->json($resultado);
 
-        } catch (\Exception $e) {
-            Log::error('Erro ao atualizar produções: ' . $e->getMessage());
+        } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Erro interno do servidor'
+                'message' => 'Dados inválidos',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Erro no controller atualizarProducoes: ' . $e->getMessage(), [
+                'request' => $request->all(),
+                'user' => Auth::user()->cdusuario ?? 'N/A'
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro interno do servidor: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -133,7 +203,6 @@ class PspRmController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Erro ao abrir calibração: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Erro interno do servidor'
@@ -155,19 +224,12 @@ class PspRmController extends Controller
                 'senha' => 'required|string'
             ]);
 
-            // Validar senha do usuário
-            if (!$this->pspRmService->validarSenha(Auth::user()->cdusuario, $request->senha)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Senha não confere ou Senha Inválida'
-                ], 400);
-            }
-
             $resultado = $this->pspRmService->atualizarCalibracao(
                 $request->produto,
                 $request->lote,
                 $request->categoria,
-                $request->dados_calibracao
+                $request->dados_calibracao,
+                $request->senha
             );
 
             return response()->json([
@@ -177,7 +239,6 @@ class PspRmController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Erro ao atualizar calibração: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Erro interno do servidor'
@@ -185,25 +246,5 @@ class PspRmController extends Controller
         }
     }
 
-    /**
-     * Testa a procedure para debug
-     */
-    public function testarProcedure(Request $request)
-    {
-        try {
-            $categoria = $request->get('categoria', 1);
-            $lote = $request->get('lote', '001');
 
-            $result = $this->pspRmService->testarProcedure($categoria, $lote);
-
-            return response()->json($result);
-
-        } catch (\Exception $e) {
-            Log::error('Erro ao testar procedure: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
 }

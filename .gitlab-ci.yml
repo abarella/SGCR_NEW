@@ -10,13 +10,6 @@ variables:
   PROJECT_NAME: "sgcr_novo"
   IIS_SITE_NAME: "SGCR_NEW"
   IIS_APP_POOL: "SGCR_NEW"
-
-  # Diretórios
-  SOURCE_DIR: "C:\\Projetos\\sgcr_novo"
-  DEPLOY_DIR: "\\\\flautim\\g$\\inetpub\\wwwroot\\Sistemas\\SGCR_NEW"
-  BACKUP_DIR: "C:\\backups\\${PROJECT_NAME}"
-
-  # Configurações do PHP
   PHP_VERSION: "8.2"
 
 # Cache para otimizar builds
@@ -25,22 +18,24 @@ cache:
     - vendor/
     - node_modules/
 
-# Job de build
+# =============================
+# JOB DE BUILD
+# =============================
 build:
   stage: build
   tags:
-    - windows
-    - iis
     - dev
+    - iis
+    - windows
   script:
-  - echo "Iniciando build da aplicacao..."
-  - composer install --no-dev --optimize-autoloader
-  - if (!(Test-Path ".env")) { Copy-Item ".env.example" ".env" }
-  - php artisan key:generate --force
-  - php artisan config:cache
-  - php artisan route:cache
-  - php artisan view:cache
-  - echo "Build concluida com sucesso!"
+    - echo "🚀 Iniciando build da aplicação..."
+    - composer install --no-dev --optimize-autoloader
+    # Usa o .env do servidor, então aqui não criamos .env
+    - php artisan config:clear
+    - php artisan cache:clear
+    - php artisan route:clear
+    - php artisan view:clear
+    - echo "✅ Build concluída com sucesso!"
   artifacts:
     paths:
       - app/
@@ -52,15 +47,16 @@ build:
       - resources/
       - routes/
       - storage/
-      - .env
       - artisan
     exclude:
-      - "**/node_modules"
-      - "**/.git"
-      - "**/tests"
-      - "**/*.log"
-      - "**/storage/logs"
-      - "**/storage/framework/cache"
+      - "/node_modules"
+      - "/.git"
+      - "/tests"
+      - "/*.log"
+      - "/storage/logs"
+      - "/storage/framework/cache"
+      - ".env"             # Garante que nunca vai junto
+      - ".env.example"
     expire_in: 1 hour
   only:
     - main
@@ -68,42 +64,43 @@ build:
   except:
     - tags
 
-# Job de deploy
+# =============================
+# JOB DE DEPLOY
+# =============================
 deploy:
   stage: deploy
   tags:
-    - windows
-    - iis
     - dev
+    - iis
+    - windows
   script:
-    - echo "Iniciando deploy no IIS..."
-    # Configurar credenciais de rede
+    - echo "🚀 Iniciando deploy no IIS..."
+    # Configurar credenciais de rede usando variáveis do GitLab
     - |
-      $username = "gds-luiz.finotello"
-      $password = "ACx%6S1*9Cng(u6"
-      cmdkey /add:flautim /user:$username /pass:$password
+      cmdkey /add:${DEPLOY_SERVER} /user:${DEPLOY_USERNAME} /pass:${DEPLOY_PASSWORD}
       Write-Host "Credenciais de rede configuradas"
     # Criar diretório de backup se não existir
     - if (!(Test-Path "${BACKUP_DIR}")) { New-Item -ItemType Directory -Path "${BACKUP_DIR}" -Force }
-    # Backup simples, direto do IIS para o backup local, excluindo vendor e node_modules
+    # Backup simples (sem .env)
     - |
       if (Test-Path "${DEPLOY_DIR}") {
         $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
         $backupPath = "${BACKUP_DIR}\\backup_${timestamp}"
         Write-Host "Criando backup em: $backupPath"
         New-Item -ItemType Directory -Path "$backupPath" -Force
-        robocopy "${DEPLOY_DIR}" "$backupPath" /E /XD "vendor" "node_modules" "tests" ".git" /XF "*.log" ".env.example" "composer.json" "composer.lock" "package.json" "package-lock.json" "webpack.mix.js" "phpunit.xml" ".gitignore" ".gitattributes"
+        robocopy "${DEPLOY_DIR}" "$backupPath" /E /XD "vendor" "node_modules" "tests" ".git" /XF "*.log" ".env" ".env.example"
         Write-Host "Backup concluído com sucesso!"
       }
-    # Deploy incremental: copiar arquivos do build para o IIS
+    # Deploy incremental (sem .env)
     - Write-Host "Copiando arquivos da aplicação..."
     - |
       try {
-        robocopy "${SOURCE_DIR}" "${DEPLOY_DIR}" /MIR /IS /IT /XD "node_modules" "tests" ".git" "vendor" "storage" "bootstrap/cache" /XF "*.log" ".env.example" "composer.json" "composer.lock" "package.json" "package-lock.json" "webpack.mix.js" "phpunit.xml" ".gitignore" ".gitattributes" "web.config" ".phpunit.result.cache" /R:3 /W:10
+        robocopy "${SOURCE_DIR}" "${DEPLOY_DIR}" /MIR /IS /IT /XD "node_modules" "tests" ".git" "vendor" "storage" "bootstrap/cache" /XF "*.log" ".env" ".env.example" /R:3 /W:10
         Write-Host "Robocopy aplicação concluído (código: $LASTEXITCODE)"
       } catch {
         Write-Host "Robocopy aplicação concluído (com erro, mas continuando...)"
       }
+    # Copiar dependências
     - Write-Host "Copiando dependências..."
     - |
       try {
@@ -129,4 +126,4 @@ deploy:
     - master
   except:
     - tags
-  allow_failure: false
+  allow_failure: false

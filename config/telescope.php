@@ -16,7 +16,7 @@ return [
     |
     */
 
-    'enabled' => env('TELESCOPE_ENABLED', true),
+    'enabled' => false, // Forçado para false para evitar problemas com SQL Server
 
 
     /*

@@ -41,11 +41,13 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('psp-rm')->group(function () {
         Route::get('/', [PspRmController::class, 'index'])->name('psp-rm.index');
         Route::get('/test', [PspRmController::class, 'test'])->name('psp-rm.test');
+        Route::get('/test-database', [PspRmController::class, 'testDatabase'])->name('psp-rm.test-database');
         Route::get('/listar-produtos', [PspRmController::class, 'listarProdutos'])->name('psp-rm.listar-produtos');
         Route::post('/atualizar-producoes', [PspRmController::class, 'atualizarProducoes'])->name('psp-rm.atualizar-producoes');
-                        Route::get('/abrir-calibracao', [PspRmController::class, 'abrirCalibracao'])->name('psp-rm.abrir-calibracao');
-                Route::post('/atualizar-calibracao', [PspRmController::class, 'atualizarCalibracao'])->name('psp-rm.atualizar-calibracao');
-                Route::get('/testar-procedure', [PspRmController::class, 'testarProcedure'])->name('psp-rm.testar-procedure');
+        Route::get('/abrir-calibracao', [PspRmController::class, 'abrirCalibracao'])->name('psp-rm.abrir-calibracao');
+        Route::post('/atualizar-calibracao', [PspRmController::class, 'atualizarCalibracao'])->name('psp-rm.atualizar-calibracao');
+        
+        
     });
 });
 
@@ -73,7 +75,7 @@ Route::prefix('dfv-ds')->name('dfv-ds.')->group(function() {
 });
 
 
-Route::get('/telescope', [\Laravel\Telescope\Http\Controllers\HomeController::class, 'index']);
+// Route::get('/telescope', [\Laravel\Telescope\Http\Controllers\HomeController::class, 'index']); // Desabilitado
 
 // Rotas para Escala de Tarefas
 Route::prefix('esc-tr')->name('escalatarefas.')->middleware(['auth'])->group(function() {

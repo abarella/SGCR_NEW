@@ -1381,8 +1381,10 @@ class SGFPService
             $stmt->bindParam(':p3', $dados['usuario'], \PDO::PARAM_STR);
             $stmt->bindParam(':p4', $dados['usuario_session'], \PDO::PARAM_STR);
             $stmt->bindParam(':p5', $dados['senha'], \PDO::PARAM_STR);
-            $stmt->bindParam(':p6', '', \PDO::PARAM_STR);
-            $stmt->bindParam(':p7', '', \PDO::PARAM_STR);
+            $p6 = '';
+            $p7 = '';
+            $stmt->bindParam(':p6', $p6, \PDO::PARAM_STR);
+            $stmt->bindParam(':p7', $p7, \PDO::PARAM_STR);
 
             return $stmt->execute();
         } catch (\Exception $e) {
@@ -1439,7 +1441,8 @@ class SGFPService
             $stmt->bindParam(':p12', $dados["cmbLacracao2"], \PDO::PARAM_STR);
             $stmt->bindParam(':p13', $dados["cmbLacracao3"], \PDO::PARAM_STR);
             $stmt->bindParam(':p14', $dados["cmbTecnico"], \PDO::PARAM_STR);
-            $stmt->bindParam(':p15', "1", \PDO::PARAM_STR);
+            $valor_p15 = "1";
+            $stmt->bindParam(':p15', $valor_p15, \PDO::PARAM_STR);
 
             return $stmt->execute();
         } catch (\Exception $e) {
