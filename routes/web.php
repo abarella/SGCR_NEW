@@ -6,6 +6,7 @@ use App\Http\Controllers\PspAdController;
 use App\Http\Controllers\DefinicaoSerie\DefinicaoSerieController;
 use App\Http\Controllers\PspPsController;
 use App\Http\Controllers\PspRmController;
+use App\Http\Controllers\PspPcController;
 
 
 
@@ -51,6 +52,18 @@ Route::middleware(['auth'])->group(function () {
     });
 });
 
+// Rotas PSP-PC (Pastas Não Concluídas)
+Route::middleware(['auth'])->group(function () {
+    Route::prefix('psp-pc')->group(function () {
+        Route::get('/', [PspPcController::class, 'index'])->name('psp-pc.index');
+        Route::get('/testar-procedure', [PspPcController::class, 'testarProcedure'])->name('psp-pc.testar-procedure');
+        Route::get('/lista', [PspPcController::class, 'lista'])->name('psp-pc.lista');
+        Route::get('/produtos', [PspPcController::class, 'produtos'])->name('psp-pc.produtos');
+        Route::get('/documentacao', [PspPcController::class, 'documentacao'])->name('psp-pc.documentacao');
+        Route::get('/ocorrencias', [PspPcController::class, 'ocorrencias'])->name('psp-pc.ocorrencias');
+        Route::get('/localizar', [PspPcController::class, 'localizar'])->name('psp-pc.localizar');
+    });
+});
 
 
 Route::prefix('psp-ad')->name('psp-ad.')->group(function() {
