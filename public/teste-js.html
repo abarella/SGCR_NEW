@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste JavaScript</title>
+</head>
+<body>
+    <h1>🧪 Teste de Carregamento de JavaScript</h1>
+    
+    <div id="resultado"></div>
+    
+    <script>
+        console.log('🧪 TESTE: Página HTML carregada');
+        
+        // Testar carregamento dos arquivos
+        const arquivos = [
+            '/js/psp-pc/psp-pc.js',
+            '/js/psp-pc/teste.js',
+            '/js/psp-pc/debug.js',
+            '/js/psp-pc/debug-simples.js'
+        ];
+        
+        const resultado = document.getElementById('resultado');
+        
+        arquivos.forEach(arquivo => {
+            console.log('🔍 Testando:', arquivo);
+            
+            const script = document.createElement('script');
+            script.src = arquivo;
+            script.onload = function() {
+                console.log('✅ Carregado com sucesso:', arquivo);
+                resultado.innerHTML += `<p style="color: green;">✅ ${arquivo} - CARREGADO</p>`;
+            };
+            script.onerror = function() {
+                console.error('❌ Erro ao carregar:', arquivo);
+                resultado.innerHTML += `<p style="color: red;">❌ ${arquivo} - ERRO</p>`;
+            };
+            
+            document.head.appendChild(script);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste PSP-PC</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .teste { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .sucesso { background-color: #d4edda; border-color: #c3e6cb; }
+        .erro { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background-color: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste PSP-PC</h1>
+    
+    <div class="teste info">
+        <h3>📋 Instruções</h3>
+        <p>Esta página testa as funcionalidades básicas do PSP-PC. Clique nos botões para executar os testes.</p>
+    </div>
+    
+    <div class="teste">
+        <h3>🔗 Teste de Conexão</h3>
+        <button onclick="testarConexao()">Testar Conexão</button>
+        <div id="resultado-conexao"></div>
+    </div>
+    
+    <div class="teste">
+        <h3>📊 Teste de Produtos</h3>
+        <button onclick="testarProdutos()">Testar Produtos</button>
+        <div id="resultado-produtos"></div>
+    </div>
+    
+    <div class="teste">
+        <h3>📋 Teste de Lista</h3>
+        <button onclick="testarLista()">Testar Lista</button>
+        <div id="resultado-lista"></div>
+    </div>
+    
+    <div class="teste">
+        <h3>🔍 Teste de Rota de Teste</h3>
+        <button onclick="testarRotaTeste()">Testar Rota de Teste</button>
+        <div id="resultado-rota-teste"></div>
+    </div>
+    
+    <script>
+        function mostrarResultado(elementoId, dados, tipo = 'info') {
+            const elemento = document.getElementById(elementoId);
+            const classe = tipo === 'sucesso' ? 'sucesso' : tipo === 'erro' ? 'erro' : 'info';
+            
+            elemento.className = `teste ${classe}`;
+            elemento.innerHTML = `
+                <h4>Resultado do Teste</h4>
+                <pre>${JSON.stringify(dados, null, 2)}</pre>
+            `;
+        }
+        
+        function testarConexao() {
+            console.log('🧪 Testando conexão...');
+            fetch('/psp-pc/testar-conexao')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('✅ Conexão:', data);
+                    mostrarResultado('resultado-conexao', data, data.success ? 'sucesso' : 'erro');
+                })
+                .catch(error => {
+                    console.error('❌ Erro conexão:', error);
+                    mostrarResultado('resultado-conexao', { error: error.message }, 'erro');
+                });
+        }
+        
+        function testarProdutos() {
+            console.log('🧪 Testando produtos...');
+            fetch('/psp-pc/produtos')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('✅ Produtos:', data);
+                    mostrarResultado('resultado-produtos', data, data.success ? 'sucesso' : 'erro');
+                })
+                .catch(error => {
+                    console.error('❌ Erro produtos:', error);
+                    mostrarResultado('resultado-produtos', { error: error.message }, 'erro');
+                });
+        }
+        
+        function testarLista() {
+            console.log('🧪 Testando lista...');
+            fetch('/psp-pc/lista')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('✅ Lista:', data);
+                    mostrarResultado('resultado-lista', data, data.success ? 'sucesso' : 'erro');
+                })
+                .catch(error => {
+                    console.error('❌ Erro lista:', error);
+                    mostrarResultado('resultado-lista', { error: error.message }, 'erro');
+                });
+        }
+        
+        function testarRotaTeste() {
+            console.log('🧪 Testando rota de teste...');
+            fetch('/psp-pc/lista-teste')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('✅ Rota teste:', data);
+                    mostrarResultado('resultado-rota-teste', data, data.success ? 'sucesso' : 'erro');
+                })
+                .catch(error => {
+                    console.error('❌ Erro rota teste:', error);
+                    mostrarResultado('resultado-rota-teste', { error: error.message }, 'erro');
+                });
+        }
+        
+        // Executar testes automáticos ao carregar a página
+        window.addEventListener('load', function() {
+            console.log('🧪 Página carregada, executando testes automáticos...');
+            setTimeout(() => {
+                testarConexao();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

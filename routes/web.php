@@ -56,12 +56,56 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::prefix('psp-pc')->group(function () {
         Route::get('/', [PspPcController::class, 'index'])->name('psp-pc.index');
+        Route::get('/testar-conexao', [PspPcController::class, 'testarConexao'])->name('psp-pc.testar-conexao');
         Route::get('/testar-procedure', [PspPcController::class, 'testarProcedure'])->name('psp-pc.testar-procedure');
         Route::get('/lista', [PspPcController::class, 'lista'])->name('psp-pc.lista');
         Route::get('/produtos', [PspPcController::class, 'produtos'])->name('psp-pc.produtos');
         Route::get('/documentacao', [PspPcController::class, 'documentacao'])->name('psp-pc.documentacao');
         Route::get('/ocorrencias', [PspPcController::class, 'ocorrencias'])->name('psp-pc.ocorrencias');
         Route::get('/localizar', [PspPcController::class, 'localizar'])->name('psp-pc.localizar');
+        
+        // Rota de teste para verificar se o JavaScript funciona
+        Route::get('/lista-teste', function() {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    (object)[
+                        'pst_numero' => '12345',
+                        'pst_produto510' => 'PRODUTO-TESTE',
+                        'Lote' => 'LOTE-TESTE',
+                        'pst_ano_lote' => '2024',
+                        'pst_ano' => '2024',
+                        'pst_registro' => '01/01/2024',
+                        'pst_previsaoproducao' => '01/02/2024',
+                        'pst_previsaocontrole' => '01/03/2024',
+                        'nome_comercial' => 'PRODUTO DE TESTE',
+                        'producao_revisadopor' => 'TESTE USUARIO',
+                        'controle_revisadopor' => 'TESTE USUARIO 2',
+                        'status' => 'TESTE STATUS'
+                    ]
+                ],
+                'total' => 1,
+                'pagina' => 1,
+                'porPagina' => 50,
+                'totalPaginas' => 1
+            ]);
+        })->name('psp-pc.lista-teste');
+        
+        // Rotas para modais refatorados
+        Route::get('/usuarios-revisores', [PspPcController::class, 'usuariosRevisores'])->name('psp-pc.usuarios-revisores');
+        Route::get('/status-pasta', [PspPcController::class, 'statusPasta'])->name('psp-pc.status-pasta');
+        Route::get('/status-producao', [PspPcController::class, 'statusProducao'])->name('psp-pc.status-producao');
+        Route::get('/documentacao-dados', [PspPcController::class, 'documentacaoDados'])->name('psp-pc.documentacao-dados');
+        Route::post('/documentacao-salvar', [PspPcController::class, 'documentacaoSalvar'])->name('psp-pc.documentacao-salvar');
+        Route::get('/tipos-ocorrencia', [PspPcController::class, 'tiposOcorrencia'])->name('psp-pc.tipos-ocorrencia');
+        Route::post('/ppst-lista4', [PspPcController::class, 'ppstLista4'])->name('psp-pc.ppst-lista4');
+        Route::get('/usuarios-responsaveis', [PspPcController::class, 'usuariosResponsaveis'])->name('psp-pc.usuarios-responsaveis');
+        Route::get('/ocorrencias-lista', [PspPcController::class, 'ocorrenciasLista'])->name('psp-pc.ocorrencias-lista');
+        Route::post('/ocorrencia-salvar', [PspPcController::class, 'ocorrenciaSalvar'])->name('psp-pc.ocorrencia-salvar');
+        Route::get('/setores', [PspPcController::class, 'setores'])->name('psp-pc.setores');
+        Route::get('/localizacoes-historico', [PspPcController::class, 'localizacoesHistorico'])->name('psp-pc.localizacoes-historico');
+        Route::post('/localizacao-salvar', [PspPcController::class, 'localizacaoSalvar'])->name('psp-pc.localizacao-salvar');
+        Route::post('/executar-procedure', [PspPcController::class, 'executarProcedure'])->name('psp-pc.executar-procedure');
     });
 });
 

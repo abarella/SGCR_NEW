@@ -1,8 +1,14 @@
 Gostaria de criar neste projeto model, view, controller e services 
-na opção do menu do adminlte  na url "psp-rm" que já existe.
+na opção do menu do adminlte  na url "psp-pc" que já existe.
 As tabelas e procedures também já estão criadas no SQL Server
+Utilizar somente as procedures que estão nos arquivos da pasta "refatorar"
 Baseado nos arquivos da pasta "refatorar" a seguir:
-1) cr_pst03.asp que usa o cr_pst03.js e cr_pst03_grid.xsl
-2) os aquivos cr_calibracao.asp e cr_calibracao.js fazem parte do modal 
-3) A chamada das procedures estão em SGFPService.php
+1) cr_pst04.asp que usa o cr_pst04.js e cr_pst04_grid.xsl
+2) A chamada das procedures estão em SGFPService.php
 
+Nas funções da primeira coluna do grid são
+1) Registrar documentação que abre cr_pst02b.asp?pasta=28063&produto=177-PSMA&lote=521  A&data=23/05/2025&observacao=&status=Não Concluido&prodstatus=Produção
+2) Registrar ocorrências  que abre cr_pst02d.asp?pasta=28063&produto=177-PSMA&lote=521  A&status=Não Concluido&prodstatus=Produção&ano=23/05/2025
+3) Localizar              que abre cr_pst02a.asp?pasta=28063&produto=177-PSMA&lote=521  A
+
+nas funções acima utilizar os arquivos pst02b.js, cr_pst02d.js e cr_pst02a.js
