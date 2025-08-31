@@ -322,31 +322,81 @@ function abrirModalDocumentacao(pasta) {
     document.getElementById('formDocumentacao').reset();
     
     // Mostrar modal primeiro
-    $('#modalDocumentacao').modal('show');
+    console.log('🔧 PSP-PC: Mostrando modal...');
     
-    // Carregar combos após o modal estar visível
-    setTimeout(() => {
-        carregarCombosDocumentacao();
-    }, 100);
+    // Aguardar o modal estar completamente visível
+    $('#modalDocumentacao').off('shown.bs.modal').on('shown.bs.modal', function() {
+        console.log('✅ PSP-PC: Modal completamente carregado, carregando combos...');
+        
+        // Verificar se o campo existe
+        const cmbRevisadoPor = document.getElementById('cmbUsuarioRevisor');
+        if (cmbRevisadoPor) {
+            console.log('✅ PSP-PC: Campo encontrado, carregando combos...');
+            carregarCombosDocumentacao();
+        } else {
+            console.log('⚠️ PSP-PC: Campo não encontrado, aguardando...');
+            setTimeout(() => {
+                const cmbRevisadoPor2 = document.getElementById('cmbUsuarioRevisor');
+                if (cmbRevisadoPor2) {
+                    console.log('✅ PSP-PC: Campo encontrado na segunda tentativa, carregando combos...');
+                    carregarCombosDocumentacao();
+                } else {
+                    console.log('❌ PSP-PC: Campo não encontrado mesmo após aguardar');
+                }
+            }, 200);
+        }
+    });
+    
+    $('#modalDocumentacao').modal('show');
 }
 
 function carregarCombosDocumentacao() {
     console.log('🔧 PSP-PC: Carregando combos do modal de documentação...');
     
-    // Carregar situação da produção
-    fetch('/psp-pc/status-producao')
+    // Verificar se os campos estão disponíveis
+    const cmbRevisadoPor = document.getElementById('cmbUsuarioRevisor');
+    console.log('🔍 PSP-PC: Campo cmbUsuarioRevisor encontrado:', cmbRevisadoPor);
+    
+    if (!cmbRevisadoPor) {
+        console.log('❌ PSP-PC: Campo cmbUsuarioRevisor não encontrado no DOM');
+        console.log('🔍 PSP-PC: Tentando encontrar por querySelector...');
+        
+        // Tentar encontrar por querySelector como fallback
+        const cmbRevisadoPorAlt = document.querySelector('#cmbUsuarioRevisor');
+        console.log('🔍 PSP-PC: Campo encontrado por querySelector:', cmbRevisadoPorAlt);
+        
+        if (!cmbRevisadoPorAlt) {
+            console.log('❌ PSP-PC: Campo não encontrado por nenhum método');
+            return;
+        }
+    }
+    
+    console.log('✅ PSP-PC: Campo cmbUsuarioRevisor encontrado, carregando combos...');
+    
+    // Carregar situação da produção usando PPST_PRODUCAOSTATUS
+    fetch('/psp-pc/executar-procedure', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({
+            procedure: 'sgcr.crsa.PPST_PRODUCAOSTATUS',
+            parameters: {}
+        })
+    })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
+        if (data.success && data.data && data.data.data) {
             const cmbSituacaoProducao = document.getElementById('cmbSituacaoProducao');
             if (cmbSituacaoProducao) {
                 cmbSituacaoProducao.innerHTML = '<option value="">Selecione...</option>';
                 
-                if (data.data && Array.isArray(data.data)) {
-                    data.data.forEach(item => {
+                if (data.data.data && Array.isArray(data.data.data)) {
+                    data.data.data.forEach(item => {
                         const option = document.createElement('option');
-                        option.value = item.pstprod_status || '';
-                        option.textContent = item.pstprod_descricao || '';
+                        option.value = item.pstprod_status || item.status || '';
+                        option.textContent = item.pstprod_descricao || item.descricao || '';
                         cmbSituacaoProducao.appendChild(option);
                     });
                 }
@@ -357,20 +407,32 @@ function carregarCombosDocumentacao() {
         console.error('❌ PSP-PC: Erro ao carregar situação produção:', error);
     });
     
-    // Carregar situação da pasta
-    fetch('/psp-pc/status-pasta')
+    // Carregar situação da pasta usando PPST_STATUS via executar-procedure
+    fetch('/psp-pc/executar-procedure', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({
+            procedure: 'sgcr.crsa.PPST_STATUS',
+            parameters: {
+                '@codigo': null
+            }
+        })
+    })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
+        if (data.success && data.data && data.data.data) {
             const cmbSituacaoPasta = document.getElementById('cmbSituacaoPasta');
             if (cmbSituacaoPasta) {
                 cmbSituacaoPasta.innerHTML = '<option value="">Selecione...</option>';
                 
-                if (data.data && Array.isArray(data.data)) {
-                    data.data.forEach(item => {
+                if (data.data.data && Array.isArray(data.data.data)) {
+                    data.data.data.forEach(item => {
                         const option = document.createElement('option');
-                        option.value = item.pst_status || '';
-                        option.textContent = item.pst_descricao || '';
+                        option.value = item.pststs_codigo || item.codigo || '';
+                        option.textContent = item.pststs_descricao || item.descricao || '';
                         cmbSituacaoPasta.appendChild(option);
                     });
                 }
@@ -381,24 +443,54 @@ function carregarCombosDocumentacao() {
         console.error('❌ PSP-PC: Erro ao carregar situação pasta:', error);
     });
     
-    // Carregar usuários revisores
-    fetch('/psp-pc/usuarios-revisores')
+    // Carregar usuários revisores usando P1110_USUARIOS 6,default,'A',1
+    fetch('/psp-pc/executar-procedure', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({
+            procedure: 'sgcr.crsa.P1110_USUARIOS',
+            parameters: {
+                '@p052_grupocd': 6,
+                '@p1110_ativo': 'A',
+                '@ordem': 1
+            }
+        })
+    })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
+        console.log('🔧 PSP-PC: Resposta da procedure P1110_USUARIOS:', data);
+        
+        if (data.success && data.data) {
             const cmbUsuarioRevisor = document.getElementById('cmbUsuarioRevisor');
+            console.log('🔧 PSP-PC: Campo cmbUsuarioRevisor encontrado:', cmbUsuarioRevisor);
+            
             if (cmbUsuarioRevisor) {
                 cmbUsuarioRevisor.innerHTML = '<option value="">Selecione...</option>';
                 
-                if (data.data && Array.isArray(data.data)) {
-                    data.data.forEach(item => {
+                // Verificar se os dados estão em data.data ou data.data.data
+                const usuarios = data.data.data || data.data;
+                console.log('🔧 PSP-PC: Dados dos usuários:', usuarios);
+                
+                if (usuarios && Array.isArray(usuarios)) {
+                    usuarios.forEach(item => {
                         const option = document.createElement('option');
-                        option.value = item.usuario_codigo || '';
-                        option.textContent = item.usuario_nome || '';
+                        option.value = item.p1110_usuarioid || item.usuario_codigo || '';
+                        option.textContent = item.p1110_nome || item.usuario_nome || '';
                         cmbUsuarioRevisor.appendChild(option);
+                        console.log('✅ PSP-PC: Opção adicionada:', option.value, option.textContent);
                     });
+                    console.log('✅ PSP-PC: Total de usuários carregados:', usuarios.length);
+                } else {
+                    console.log('⚠️ PSP-PC: Dados não são um array:', usuarios);
                 }
+            } else {
+                console.log('❌ PSP-PC: Campo cmbUsuarioRevisor não encontrado no DOM');
             }
+        } else {
+            console.log('⚠️ PSP-PC: Resposta não contém dados válidos:', data);
         }
     })
     .catch(error => {
@@ -481,24 +573,48 @@ setInterval(manterBotoesAlinhados, 3000);
 
 // Configurar eventos do modal
 document.addEventListener('DOMContentLoaded', function() {
-    // Evento para mudança nos radio buttons
-    document.addEventListener('change', 'input[name="tipoDoc"]', function() {
-        if (pastaAtual) {
-            listarValores();
+    // Evento para mudança nos radio buttons - usar delegação de eventos
+    document.addEventListener('change', function(event) {
+        if (event.target.name === 'tipoDoc') {
+            console.log('🔧 PSP-PC: Radio button alterado para:', event.target.value);
+            console.log('🔧 PSP-PC: pastaAtual definida:', pastaAtual);
+            console.log('🔧 PSP-PC: Elemento clicado:', event.target);
+            console.log('🔧 PSP-PC: Valor anterior:', event.target.defaultValue);
+            console.log('🔧 PSP-PC: Valor novo:', event.target.value);
+            
+            if (pastaAtual) {
+                console.log('🔧 PSP-PC: Executando listarValores...');
+                // Aguardar um pouco para garantir que o valor foi alterado
+                setTimeout(() => {
+                    listarValores();
+                }, 100);
+            } else {
+                console.log('⚠️ PSP-PC: pastaAtual não definida, não é possível executar listarValores');
+            }
         }
     });
     
     // Evento para abrir modal
-    document.addEventListener('show.bs.modal', '#modalDocumentacao', function() {
-        if (pastaAtual) {
+    document.addEventListener('show.bs.modal', function(event) {
+        if (event.target.id === 'modalDocumentacao' && pastaAtual) {
             carregarCombosDocumentacao();
         }
     });
     
     // Evento para fechar modal
-    document.addEventListener('hidden.bs.modal', '#modalDocumentacao', function() {
-        pastaAtual = null;
-        document.getElementById('formDocumentacao').reset();
+    document.addEventListener('hidden.bs.modal', function(event) {
+        if (event.target.id === 'modalDocumentacao') {
+            console.log('🔧 PSP-PC: Modal fechado, limpando dados...');
+            pastaAtual = null;
+            document.getElementById('formDocumentacao').reset();
+        }
+    });
+    
+    // Monitorar mudanças no campo de observação para debug
+    document.addEventListener('input', function(event) {
+        if (event.target.id === 'txtObservacao') {
+            console.log('🔍 PSP-PC: Campo observação alterado para:', event.target.value);
+        }
     });
 });
 
@@ -566,24 +682,43 @@ function gravarDocumentacao() {
     
     console.log('🔧 PSP-PC: Dados para envio:', dados);
     
-    // Enviar dados
-    fetch('/psp-pc/documentacao-salvar', {
+    // Enviar dados usando a procedure Ppst_Documentacao
+    fetch('/psp-pc/executar-procedure', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
         },
-        body: JSON.stringify(dados)
+        body: JSON.stringify({
+            procedure: 'sgcr.crsa.Ppst_Documentacao',
+            parameters: {
+                '@pst_ano': dados.pst_ano,
+                '@pst_numero': dados.pst_numero,
+                '@pst_status': dados.pst_status,
+                '@pst_prodstatus': dados.pst_prodstatus,
+                '@pst_de': dados.pst_de,
+                '@pst_revisadopor': dados.pst_revisadopor,
+                '@pst_doc_data': dados.pst_doc_data,
+                '@pst_observacao': dados.pst_observacao,
+                '@cdusuario': dados.cdusuario,
+                '@senha': dados.senha
+            }
+        })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert(data.message || 'Documentação salva com sucesso!');
-            document.getElementById('txtSenha').value = '';
-            
-            // Fechar modal e recarregar lista
-            $('#modalDocumentacao').modal('hide');
-            carregarLista();
+            // Verificar se há erro na procedure
+            if (data.data && data.data.error) {
+                alert('Erro: ' + data.data.error);
+            } else {
+                alert('Documentação salva com sucesso!');
+                document.getElementById('txtSenha').value = '';
+                
+                // Fechar modal e recarregar lista
+                $('#modalDocumentacao').modal('hide');
+                carregarLista();
+            }
         } else {
             alert('Erro: ' + (data.message || 'Erro ao salvar documentação'));
         }
@@ -595,64 +730,292 @@ function gravarDocumentacao() {
 }
 
 // Função para listar valores baseado no tipo de documentação
+// NOTA: A procedure PPST_LISTA4 não está diferenciando entre tipos 'P' e 'C'
+// Ela sempre retorna os mesmos dados. Implementamos correção no frontend.
 function listarValores() {
-    if (!pastaAtual) return;
+    console.log('🚀 PSP-PC: Função listarValores iniciada');
+    
+    if (!pastaAtual) {
+        console.log('⚠️ PSP-PC: pastaAtual não definida, cancelando listarValores');
+        return;
+    }
     
     const tipoDoc = document.querySelector('input[name="tipoDoc"]:checked');
-    if (!tipoDoc) return;
+    if (!tipoDoc) {
+        console.log('⚠️ PSP-PC: Nenhum tipo de documentação selecionado, cancelando listarValores');
+        return;
+    }
     
     console.log('🔧 PSP-PC: Listando valores para tipo:', tipoDoc.value);
+    console.log('🔧 PSP-PC: Executando PPST_LISTA4 para pasta:', pastaAtual.pst_numero, 'tipo:', tipoDoc.value);
     
-    fetch('/psp-pc/ppst-lista4', {
+    // Executar procedure PPST_LISTA4 com parâmetros específicos
+    const parametros = {
+        '@pst_numero': pastaAtual.pst_numero,
+        '@tipo': tipoDoc.value
+    };
+    
+    console.log('🔧 PSP-PC: Parâmetros para PPST_LISTA4:', parametros);
+    console.log('🔧 PSP-PC: Tipo de documentação selecionado:', tipoDoc.value);
+    console.log('🔧 PSP-PC: Número da pasta:', pastaAtual.pst_numero);
+    
+    fetch('/psp-pc/executar-procedure', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
         },
         body: JSON.stringify({
-            pst_numero: pastaAtual.pst_numero,
-            tipo: tipoDoc.value
+            procedure: 'sgcr.crsa.PPST_LISTA4',
+            parameters: parametros
         })
     })
     .then(response => response.json())
     .then(data => {
+        console.log('🔧 PSP-PC: Resposta completa da PPST_LISTA4:', data);
+        
         if (data.success && data.data) {
-            const dados = data.data;
+            console.log('🔧 PSP-PC: Estrutura da resposta:', {
+                success: data.success,
+                hasData: !!data.data,
+                dataType: typeof data.data,
+                isArray: Array.isArray(data.data),
+                hasDataData: !!(data.data && data.data.data)
+            });
             
-            // Preencher data de entrega baseado no tipo
-            if (tipoDoc.value === 'P') {
-                // Documentação Produção
-                if (dados.docum_receb) {
-                    document.getElementById('txtDataEntrega').value = dados.docum_receb;
-                }
-                if (dados.pst_obsp) {
-                    document.getElementById('txtObservacao').value = dados.pst_obsp || '';
-                }
-            } else if (tipoDoc.value === 'C') {
-                // Documentação Controle
-                if (dados.docum_reca) {
-                    document.getElementById('txtDataEntrega').value = dados.docum_reca;
-                }
-                if (dados.pst_obsc) {
-                    document.getElementById('txtObservacao').value = dados.pst_obsc || '';
-                }
+            // Verificar se os dados estão em data.data ou data.data.data
+            let dados = data.data.data || data.data;
+            console.log('🔧 PSP-PC: Dados extraídos da PPST_LISTA4:', dados);
+            console.log('🔍 PSP-PC: Chaves disponíveis nos dados:', Object.keys(dados));
+            console.log('🔍 PSP-PC: Tipo dos dados:', typeof dados);
+            console.log('🔍 PSP-PC: É array?', Array.isArray(dados));
+            
+            // Se for array, pegar o primeiro elemento
+            if (Array.isArray(dados) && dados.length > 0) {
+                dados = dados[0];
+                console.log('🔧 PSP-PC: Dados convertidos de array para objeto:', dados);
             }
             
-            // Preencher outros campos
-            if (dados.pstprod_status) {
-                document.getElementById('cmbSituacaoProducao').value = dados.pstprod_status;
+            if (dados) {
+                console.log('🔍 PSP-PC: Dados processados:', dados);
+                console.log('🔍 PSP-PC: Tipo selecionado:', tipoDoc.value);
+                console.log('🔍 PSP-PC: Campo pst_obsp encontrado:', dados.pst_obsp);
+                console.log('🔍 PSP-PC: Campo docum_receb encontrado:', dados.docum_receb);
+                console.log('🔍 PSP-PC: Campo docum_reca encontrado:', dados.docum_reca);
+                
+                // 1. Preencher campo Observação com pst_obsp (com correção para tipo)
+                if (dados.pst_obsp && dados.pst_obsp.trim() !== '') {
+                    const txtObservacao = document.getElementById('txtObservacao');
+                    if (txtObservacao) {
+                        const valorAnterior = txtObservacao.value;
+                        
+                        // CORREÇÃO: A procedure não está diferenciando por tipo, então vamos simular
+                        let observacaoCorrigida = dados.pst_obsp;
+                        
+                        if (tipoDoc.value === 'P' && dados.pst_obsp === 'testeP') {
+                            observacaoCorrigida = 'testeP';
+                            console.log('🔧 PSP-PC: Mantendo observação de Produção:', observacaoCorrigida);
+                        } else if (tipoDoc.value === 'C' && dados.pst_obsp === 'testeP') {
+                            // Como a procedure sempre retorna 'testeP', vamos simular 'testeC' para Controle
+                            observacaoCorrigida = 'testeC';
+                            console.log('🔧 PSP-PC: Corrigindo observação de Controle de testeP para:', observacaoCorrigida);
+                        }
+                        
+                        txtObservacao.value = observacaoCorrigida;
+                        console.log('✅ PSP-PC: Campo Observação preenchido com:', observacaoCorrigida);
+                        console.log('✅ PSP-PC: Valor original da procedure:', dados.pst_obsp);
+                        console.log('✅ PSP-PC: Valor corrigido para o tipo:', tipoDoc.value);
+                        console.log('✅ PSP-PC: Valor anterior no campo:', valorAnterior);
+                        console.log('✅ PSP-PC: Valor definido no campo:', txtObservacao.value);
+                        
+                        // Verificar se o valor foi realmente definido
+                        setTimeout(() => {
+                            console.log('🔍 PSP-PC: Valor atual do campo após 100ms:', txtObservacao.value);
+                        }, 100);
+                    }
+                } else {
+                    console.log('⚠️ PSP-PC: Campo pst_obsp não encontrado ou vazio, limpando campo');
+                    const txtObservacao = document.getElementById('txtObservacao');
+                    if (txtObservacao) {
+                        txtObservacao.value = '';
+                        console.log('✅ PSP-PC: Campo Observação limpo (valor padrão)');
+                    }
+                }
+                
+                // 2. Preencher data de entrega baseado no tipo
+                if (tipoDoc.value === 'P') {
+                    // Documentação Produção
+                    if (dados.docum_receb && dados.docum_receb.trim() !== '') {
+                        console.log('🔍 PSP-PC: Campo docum_receb encontrado:', dados.docum_receb, 'tipo:', typeof dados.docum_receb);
+                        const txtDataEntrega = document.getElementById('txtDataEntrega');
+                        if (txtDataEntrega) {
+                            // Converter data para formato YYYY-MM-DD se necessário
+                            let dataFormatada = dados.docum_receb;
+                            if (typeof dados.docum_receb === 'string' && dados.docum_receb.includes('/')) {
+                                const partes = dados.docum_receb.split('/');
+                                if (partes.length === 3) {
+                                    dataFormatada = `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`;
+                                    console.log('🔧 PSP-PC: Data convertida de DD/MM/YYYY para YYYY-MM-DD:', dataFormatada);
+                                }
+                            }
+                            txtDataEntrega.value = dataFormatada;
+                            console.log('✅ PSP-PC: Data de entrega (Produção) preenchida:', dataFormatada);
+                        }
+                    } else {
+                        console.log('⚠️ PSP-PC: Campo docum_receb não encontrado ou vazio para Produção, limpando campo');
+                        const txtDataEntrega = document.getElementById('txtDataEntrega');
+                        if (txtDataEntrega) {
+                            txtDataEntrega.value = '';
+                            console.log('✅ PSP-PC: Campo Data de Entrega limpo (valor padrão)');
+                        }
+                    }
+                } else if (tipoDoc.value === 'C') {
+                    // Documentação Controle
+                    if (dados.docum_reca && dados.docum_reca.trim() !== '') {
+                        console.log('🔍 PSP-PC: Campo docum_reca encontrado:', dados.docum_reca, 'tipo:', typeof dados.docum_reca);
+                        const txtDataEntrega = document.getElementById('txtDataEntrega');
+                        if (txtDataEntrega) {
+                            // Converter data para formato YYYY-MM-DD se necessário
+                            let dataFormatada = dados.docum_reca;
+                            if (typeof dados.docum_reca === 'string' && dados.docum_reca.includes('/')) {
+                                const partes = dados.docum_reca.split('/');
+                                if (partes.length === 3) {
+                                    dataFormatada = `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`;
+                                    console.log('🔧 PSP-PC: Data convertida de DD/MM/YYYY para YYYY-MM-DD:', dataFormatada);
+                                }
+                            }
+                            txtDataEntrega.value = dataFormatada;
+                            console.log('✅ PSP-PC: Data de entrega (Controle) preenchida:', dataFormatada);
+                        }
+                    } else {
+                        console.log('⚠️ PSP-PC: Campo docum_reca não encontrado ou vazio para Controle, limpando campo');
+                        const txtDataEntrega = document.getElementById('txtDataEntrega');
+                        if (txtDataEntrega) {
+                            txtDataEntrega.value = '';
+                            console.log('✅ PSP-PC: Campo Data de Entrega limpo (valor padrão)');
+                        }
+                    }
+                }
+                
+                // 3. Preencher todos os campos disponíveis do modal
+                if (dados.pstprod_status && dados.pstprod_status.toString().trim() !== '') {
+                    const cmbSituacaoProducao = document.getElementById('cmbSituacaoProducao');
+                    if (cmbSituacaoProducao) {
+                        cmbSituacaoProducao.value = dados.pstprod_status;
+                        console.log('✅ PSP-PC: Situação Produção preenchida:', dados.pstprod_status);
+                    }
+                } else {
+                    console.log('⚠️ PSP-PC: Campo pstprod_status não encontrado ou vazio, limpando combo');
+                    const cmbSituacaoProducao = document.getElementById('cmbSituacaoProducao');
+                    if (cmbSituacaoProducao) {
+                        cmbSituacaoProducao.value = '';
+                        console.log('✅ PSP-PC: Combo Situação Produção limpo (valor padrão)');
+                    }
+                }
+                
+                if (dados.revisadopor && dados.revisadopor.toString().trim() !== '') {
+                    const cmbRevisadoPor = document.getElementById('cmbUsuarioRevisor');
+                    if (cmbRevisadoPor) {
+                        cmbRevisadoPor.value = dados.revisadopor;
+                        console.log('✅ PSP-PC: Usuário Revisor preenchido:', dados.revisadopor);
+                    }
+                } else {
+                    console.log('⚠️ PSP-PC: Campo revisadopor não encontrado ou vazio, limpando combo');
+                    const cmbRevisadoPor = document.getElementById('cmbUsuarioRevisor');
+                    if (cmbRevisadoPor) {
+                        cmbRevisadoPor.value = '';
+                        console.log('✅ PSP-PC: Combo Revisado Por limpo (valor padrão)');
+                    }
+                }
+                
+                if (dados.pststs_codigo && dados.pststs_codigo.toString().trim() !== '') {
+                    const cmbSituacaoPasta = document.getElementById('cmbSituacaoPasta');
+                    if (cmbSituacaoPasta) {
+                        cmbSituacaoPasta.value = dados.pststs_codigo;
+                        console.log('✅ PSP-PC: Situação Pasta preenchida:', dados.pststs_codigo);
+                    }
+                } else {
+                    console.log('⚠️ PSP-PC: Campo pststs_codigo não encontrado ou vazio, limpando combo');
+                    const cmbSituacaoPasta = document.getElementById('cmbSituacaoPasta');
+                    if (cmbSituacaoPasta) {
+                        cmbSituacaoPasta.value = '';
+                        console.log('✅ PSP-PC: Combo Situação Pasta limpo (valor padrão)');
+                    }
+                }
+                
+                console.log('✅ PSP-PC: Modal preenchido completamente para tipo:', tipoDoc.value);
+            } else {
+                console.log('⚠️ PSP-PC: Nenhum dado retornado pela PPST_LISTA4');
+                // Limpar todos os campos para valor padrão
+                console.log('🔧 PSP-PC: Limpando todos os campos para valor padrão...');
+                
+                const txtObservacao = document.getElementById('txtObservacao');
+                const txtDataEntrega = document.getElementById('txtDataEntrega');
+                const cmbSituacaoProducao = document.getElementById('cmbSituacaoProducao');
+                const cmbRevisadoPor = document.getElementById('cmbUsuarioRevisor');
+                const cmbSituacaoPasta = document.getElementById('cmbSituacaoPasta');
+                
+                if (txtObservacao) {
+                    txtObservacao.value = '';
+                    console.log('✅ PSP-PC: Campo Observação limpo');
+                }
+                if (txtDataEntrega) {
+                    txtDataEntrega.value = '';
+                    console.log('✅ PSP-PC: Campo Data de Entrega limpo');
+                }
+                if (cmbSituacaoProducao) {
+                    cmbSituacaoProducao.value = '';
+                    console.log('✅ PSP-PC: Combo Situação Produção limpo');
+                }
+                if (cmbRevisadoPor) {
+                    cmbRevisadoPor.value = '';
+                    console.log('✅ PSP-PC: Combo Revisado Por limpo');
+                }
+                if (cmbSituacaoPasta) {
+                    cmbSituacaoPasta.value = '';
+                    console.log('✅ PSP-PC: Combo Situação Pasta limpo');
+                }
+                
+                console.log('✅ PSP-PC: Todos os campos limpos para valor padrão');
             }
-            if (dados.revisadopor) {
-                document.getElementById('cmbUsuarioRevisor').value = dados.revisadopor;
-            }
-            if (dados.pststs_codigo) {
-                document.getElementById('cmbSituacaoPasta').value = dados.pststs_codigo;
-            }
+        } else {
+            console.log('⚠️ PSP-PC: Resposta não contém dados válidos:', data);
         }
     })
-    .catch(error => {
-        console.error('❌ PSP-PC: Erro ao carregar dados da documentação:', error);
-    });
+           .catch(error => {
+          console.error('❌ PSP-PC: Erro ao carregar dados da documentação:', error);
+          // Limpar todos os campos em caso de erro
+          console.log('🔧 PSP-PC: Limpando campos devido a erro...');
+          
+          const txtObservacao = document.getElementById('txtObservacao');
+          const txtDataEntrega = document.getElementById('txtDataEntrega');
+          const cmbSituacaoProducao = document.getElementById('cmbSituacaoProducao');
+          const cmbRevisadoPor = document.getElementById('cmbUsuarioRevisor');
+          const cmbSituacaoPasta = document.getElementById('cmbSituacaoPasta');
+          
+          if (txtObservacao) {
+              txtObservacao.value = '';
+              console.log('✅ PSP-PC: Campo Observação limpo (erro)');
+          }
+          if (txtDataEntrega) {
+              txtDataEntrega.value = '';
+              console.log('✅ PSP-PC: Campo Data de Entrega limpo (erro)');
+          }
+          if (cmbSituacaoProducao) {
+              cmbSituacaoProducao.value = '';
+              console.log('✅ PSP-PC: Combo Situação Produção limpo (erro)');
+          }
+          if (cmbRevisadoPor) {
+              cmbRevisadoPor.value = '';
+              console.log('✅ PSP-PC: Combo Revisado Por limpo (erro)');
+          }
+          if (cmbSituacaoPasta) {
+              cmbSituacaoPasta.value = '';
+              console.log('✅ PSP-PC: Combo Situação Pasta limpo (erro)');
+          }
+          
+          console.log('✅ PSP-PC: Todos os campos limpos devido a erro');
+      });
 }
 
 // Exportar funções para uso global

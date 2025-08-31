@@ -599,9 +599,12 @@ class PspPcController extends Controller
             $status = [];
             
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+                // Log para debug
+                Log::info('PSP-PC: Colunas retornadas pela PPST_STATUS', ['row' => $row]);
+                
                 $status[] = (object) [
-                    'pststs_codigo' => $row['pststs_codigo'],
-                    'pststs_descricao' => $row['pststs_descricao']
+                    'pststs_codigo' => $row['pststs_codigo'] ?? $row['codigo'] ?? '',
+                    'pststs_descricao' => $row['pststs_descricao'] ?? $row['descricao'] ?? ''
                 ];
             }
             
@@ -636,9 +639,12 @@ class PspPcController extends Controller
             $status = [];
             
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+                // Log para debug
+                Log::info('PSP-PC: Colunas retornadas pela PPST_PRODUCAOSTATUS', ['row' => $row]);
+                
                 $status[] = (object) [
-                    'pstprod_status' => $row['pstprod_status'],
-                    'pstprod_descricao' => $row['pstprod_descricao']
+                    'pstprod_status' => $row['pstprod_status'] ?? $row['status'] ?? '',
+                    'pstprod_descricao' => $row['pstprod_descricao'] ?? $row['descricao'] ?? ''
                 ];
             }
             
@@ -1074,26 +1080,32 @@ class PspPcController extends Controller
             $result = null;
             
             switch ($procedure) {
+                case 'sgcr.crsa.P1110_USUARIOS':
                 case 'crsa.P1110_USUARIOS':
                     $result = $this->executarP1110Usuarios($dbh, $parameters);
                     break;
                     
+                case 'sgcr.crsa.PPST_STATUS':
                 case 'crsa.PPST_STATUS':
                     $result = $this->executarPPSTStatus($dbh, $parameters);
                     break;
                     
+                case 'sgcr.crsa.PPST_PRODUCAOSTATUS':
                 case 'crsa.PPST_PRODUCAOSTATUS':
                     $result = $this->executarPPSTProducaoStatus($dbh, $parameters);
                     break;
                     
+                case 'sgcr.crsa.PPST_LISTA4':
                 case 'crsa.PPST_LISTA4':
                     $result = $this->executarPPSTLista4($dbh, $parameters);
                     break;
                     
+                case 'sgcr.crsa.P1110_confsenha':
                 case 'crsa.P1110_confsenha':
                     $result = $this->executarP1110ConfSenha($dbh, $parameters);
                     break;
                     
+                case 'sgcr.crsa.Ppst_Documentacao':
                 case 'crsa.Ppst_Documentacao':
                     $result = $this->executarPpstDocumentacao($dbh, $parameters);
                     break;
@@ -1133,19 +1145,48 @@ class PspPcController extends Controller
         if ($grupocd !== null) {
             $sql .= " @p052_grupocd = :grupocd";
             $params[':grupocd'] = $grupocd;
+        } else {
+            $sql .= " @p052_grupocd = NULL";
         }
         
-        $sql .= " @p1110_ativo = :ativo, @ordem = :ordem";
+        $sql .= ", @p1110_ativo = :ativo, @ordem = :ordem";
         $params[':ativo'] = $ativo;
         $params[':ordem'] = $ordem;
         
         $stmt = $dbh->prepare($sql);
         $stmt->execute($params);
         
+        // Log para debug
+        Log::info('PSP-PC: SQL executado para P1110_USUARIOS', ['sql' => $sql, 'params' => $params]);
+        
         $usuarios = [];
         while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-            $usuarios[] = $row;
+            // Log para debug
+            Log::info('PSP-PC: Linha retornada por P1110_USUARIOS', ['row' => $row]);
+            
+                            // Verificar se retornou XML
+                if (isset($row['XML_F52E2B61-18A1-11d1-B105-00805F49916B'])) {
+                    $xmlContent = $row['XML_F52E2B61-18A1-11d1-B105-00805F49916B'];
+                    Log::info('PSP-PC: XML retornado por P1110_USUARIOS', ['xml' => $xmlContent]);
+                    
+                    // Extrair dados usando regex diretamente (mais confiável para este caso)
+                    preg_match_all('/p1110_usuarioid="([^"]*)"[^>]*p1110_nome="([^"]*)"/', $xmlContent, $matches, PREG_SET_ORDER);
+                    
+                    foreach ($matches as $match) {
+                        if (isset($match[1]) && isset($match[2])) {
+                            $usuarios[] = [
+                                'p1110_usuarioid' => $match[1],
+                                'p1110_nome' => $match[2]
+                            ];
+                        }
+                    }
+                } else {
+                    // Dados diretos
+                    $usuarios[] = $row;
+                }
         }
+        
+        Log::info('PSP-PC: Total de usuários retornados', ['total' => count($usuarios)]);
         
         return [
             'data' => $usuarios,
@@ -1179,7 +1220,51 @@ class PspPcController extends Controller
             
             $status = [];
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-                $status[] = $row;
+                // Log para debug
+                Log::info('PSP-PC: Colunas retornadas pela PPST_STATUS', ['row' => $row]);
+                
+                // Verificar se retornou XML
+                if (isset($row['XML_F52E2B61-18A1-11d1-B105-00805F49916B'])) {
+                    $xmlContent = $row['XML_F52E2B61-18A1-11d1-B105-00805F49916B'];
+                    Log::info('PSP-PC: XML retornado pela PPST_STATUS', ['xml' => $xmlContent]);
+                    
+                    // Processar XML - adicionar tag raiz se necessário
+                    if (!str_starts_with($xmlContent, '<root>')) {
+                        $xmlContent = '<root>' . $xmlContent . '</root>';
+                    }
+                    
+                    // Tentar processar XML com tratamento de erro
+                    $xml = @simplexml_load_string($xmlContent);
+                    if ($xml && isset($xml->row)) {
+                        foreach ($xml->row as $xmlRow) {
+                            $status[] = [
+                                'pststs_codigo' => (string)($xmlRow['pststs_codigo'] ?? ''),
+                                'pststs_descricao' => (string)($xmlRow['pststs_descricao'] ?? '')
+                            ];
+                        }
+                    } else {
+                        // Se falhar o XML, tentar processar como string
+                        Log::warning('PSP-PC: Falha ao processar XML PPST_STATUS, tentando processar como string');
+                        
+                        // Extrair dados usando regex como fallback
+                        preg_match_all('/pststs_codigo="([^"]*)"[^>]*pststs_descricao="([^"]*)"/', $xmlContent, $matches, PREG_SET_ORDER);
+                        
+                        foreach ($matches as $match) {
+                            if (isset($match[1]) && isset($match[2])) {
+                                $status[] = [
+                                    'pststs_codigo' => $match[1],
+                                    'pststs_descricao' => $match[2]
+                                ];
+                            }
+                        }
+                    }
+                } else {
+                    // Dados diretos
+                    $status[] = [
+                        'pststs_codigo' => $row['pststs_codigo'] ?? $row['codigo'] ?? '',
+                        'pststs_descricao' => $row['pststs_descricao'] ?? $row['descricao'] ?? ''
+                    ];
+                }
             }
             
             return [
@@ -1199,7 +1284,51 @@ class PspPcController extends Controller
         
         $status = [];
         while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-            $status[] = $row;
+            // Log para debug
+            Log::info('PSP-PC: Colunas retornadas pela PPST_PRODUCAOSTATUS', ['row' => $row]);
+            
+            // Verificar se retornou XML
+            if (isset($row['XML_F52E2B61-18A1-11d1-B105-00805F49916B'])) {
+                $xmlContent = $row['XML_F52E2B61-18A1-11d1-B105-00805F49916B'];
+                Log::info('PSP-PC: XML retornado por PPST_PRODUCAOSTATUS', ['xml' => $xmlContent]);
+                
+                // Processar XML - adicionar tag raiz se necessário
+                if (!str_starts_with($xmlContent, '<root>')) {
+                    $xmlContent = '<root>' . $xmlContent . '</root>';
+                }
+                
+                // Tentar processar XML com tratamento de erro
+                $xml = @simplexml_load_string($xmlContent);
+                if ($xml && isset($xml->row)) {
+                    foreach ($xml->row as $xmlRow) {
+                        $status[] = [
+                            'pstprod_status' => (string)($xmlRow['pstprod_status'] ?? ''),
+                            'pstprod_descricao' => (string)($xmlRow['pstprod_descricao'] ?? '')
+                        ];
+                    }
+                } else {
+                    // Se falhar o XML, tentar processar como string
+                    Log::warning('PSP-PC: Falha ao processar XML PPST_PRODUCAOSTATUS, tentando processar como string');
+                    
+                    // Extrair dados usando regex como fallback
+                    preg_match_all('/pstprod_status="([^"]*)"[^>]*pstprod_descricao="([^"]*)"/', $xmlContent, $matches, PREG_SET_ORDER);
+                    
+                    foreach ($matches as $match) {
+                        if (isset($match[1]) && isset($match[2])) {
+                            $status[] = [
+                                'pstprod_status' => $match[1],
+                                'pstprod_descricao' => $match[2]
+                            ];
+                        }
+                    }
+                }
+            } else {
+                // Dados diretos
+                $status[] = [
+                    'pstprod_status' => $row['pstprod_status'] ?? $row['status'] ?? '',
+                    'pstprod_descricao' => $row['pstprod_descricao'] ?? $row['descricao'] ?? ''
+                ];
+            }
         }
         
         return [
@@ -1229,7 +1358,78 @@ class PspPcController extends Controller
         
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
         
-        return $result ?: [];
+        // Log para debug
+        Log::info('PSP-PC: Resultado da PPST_LISTA4', ['result' => $result]);
+        
+        // Verificar se retornou XML
+        if (isset($result['XML_F52E2B61-18A1-11d1-B105-00805F49916B'])) {
+            $xmlContent = $result['XML_F52E2B61-18A1-11d1-B105-00805F49916B'];
+            Log::info('PSP-PC: XML retornado por PPST_LISTA4', ['xml' => $xmlContent]);
+            
+            // Processar XML - adicionar tag raiz se necessário
+            if (!str_starts_with($xmlContent, '<root>')) {
+                $xmlContent = '<root>' . $xmlContent . '</root>';
+            }
+            
+            // Tentar processar XML com tratamento de erro
+            $xml = @simplexml_load_string($xmlContent);
+            if ($xml && isset($xml->row)) {
+                $xmlRow = $xml->row;
+                $processedData = [
+                    'pst_numero' => (string)($xmlRow['pst_numero'] ?? ''),
+                    'Pst_ano' => (string)($xmlRow['Pst_ano'] ?? ''),
+                    'pst_produto510' => (string)($xmlRow['pst_produto510'] ?? ''),
+                    'Lote' => (string)($xmlRow['Lote'] ?? ''),
+                    'p033_ResultadoID' => (string)($xmlRow['p033_ResultadoID'] ?? ''),
+                    'pstprod_status' => (string)($xmlRow['pstprod_status'] ?? ''),
+                    'pststs_codigo' => (string)($xmlRow['pststs_codigo'] ?? ''),
+                    'revisadopor_nome' => (string)($xmlRow['revisadopor_nome'] ?? ''),
+                    'revisadopor' => (string)($xmlRow['revisadopor'] ?? ''),
+                    'docum_receb' => (string)($xmlRow['docum_receb'] ?? ''),
+                    'docum_reca' => (string)($xmlRow['docum_reca'] ?? ''),
+                    'previsao' => (string)($xmlRow['previsao'] ?? ''),
+                    'pst_obsp' => (string)($xmlRow['pst_obsp'] ?? '')
+                ];
+                
+                Log::info('PSP-PC: Dados processados da PPST_LISTA4', ['processed' => $processedData]);
+                
+                return [
+                    'data' => $processedData,
+                    'total' => 1
+                ];
+            } else {
+                // Se falhar o XML, tentar processar como string
+                Log::warning('PSP-PC: Falha ao processar XML PPST_LISTA4, tentando processar como string');
+                
+                // Extrair dados usando regex como fallback
+                preg_match_all('/pst_obsp="([^"]*)"/', $xmlContent, $matches);
+                $pst_obsp = $matches[1][0] ?? '';
+                
+                preg_match_all('/docum_receb="([^"]*)"/', $xmlContent, $matches);
+                $docum_receb = $matches[1][0] ?? '';
+                
+                preg_match_all('/docum_reca="([^"]*)"/', $xmlContent, $matches);
+                $docum_reca = $matches[1][0] ?? '';
+                
+                $processedData = [
+                    'pst_obsp' => $pst_obsp,
+                    'docum_receb' => $docum_receb,
+                    'docum_reca' => $docum_reca
+                ];
+                
+                Log::info('PSP-PC: Dados extraídos via regex da PPST_LISTA4', ['processed' => $processedData]);
+                
+                return [
+                    'data' => $processedData,
+                    'total' => 1
+                ];
+            }
+        }
+        
+        return [
+            'data' => $result ?: [],
+            'total' => $result ? 1 : 0
+        ];
     }
     
     /**
